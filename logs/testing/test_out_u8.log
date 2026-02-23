@@ -1,0 +1,428 @@
+﻿conda.exe : EEE
+所在位置 D:\anaconda3\she
+ll\condabin\Conda.psm
+1:153 字符: 17
++ ...             & $
+Env:CONDA_EXE $Env:_C
+E_M $Env:_CE_CONDA $C
+ommand @Othe ...
++                 ~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (EEE:Str   
+ ing) [], RemoteE    
+xception
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+=====================
+=====================
+=====================
+=======
+ERROR: test_extreme_g
+uidance_sampling (tes
+t_causal_tabdiff.Test
+CausalTabDiff)
+Step B: Boundary Cond
+ition Test - Extreme 
+Guidance
+---------------------
+---------------------
+---------------------
+-------
+Traceback (most recen
+t call last):
+  File "D:\CodeReposi
+tory\UESTC\project_2\
+tests\test_causal_tab
+diff.py", line 38, in
+ test_extreme_guidanc
+e_sampling
+    out_normal = self
+.model.sample_with_gu
+idance(2, alpha_targe
+t, guidance_scale=1.0
+)
+  File "D:\CodeReposi
+tory\UESTC\project_2\
+src\models\causal_tab
+diff.py", line 183, i
+n sample_with_guidanc
+e
+    pred_noise = self
+.block1(x, c_emb)
+  File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\torc
+h\nn\modules\module.p
+y", line 1776, in _wr
+apped_call_impl
+    return self._call
+_impl(*args, **kwargs
+)
+  File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\torc
+h\nn\modules\module.p
+y", line 1787, in _ca
+ll_impl
+    return forward_ca
+ll(*args, **kwargs)
+  File "D:\CodeReposi
+tory\UESTC\project_2\
+src\models\causal_tab
+diff.py", line 47, in
+ forward
+    x_time = self.ada
+_gn_time(x, c)
+  File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\torc
+h\nn\modules\module.p
+y", line 1776, in _wr
+apped_call_impl
+    return self._call
+_impl(*args, **kwargs
+)
+  File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\torc
+h\nn\modules\module.p
+y", line 1787, in _ca
+ll_impl
+    return forward_ca
+ll(*args, **kwargs)
+  File "D:\CodeReposi
+tory\UESTC\project_2\
+src\models\causal_tab
+diff.py", line 15, in
+ forward
+    x = self.norm(x)
+  File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\torc
+h\nn\modules\module.p
+y", line 1776, in _wr
+apped_call_impl
+    return self._call
+_impl(*args, **kwargs
+)
+  File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\torc
+h\nn\modules\module.p
+y", line 1787, in _ca
+ll_impl
+    return forward_ca
+ll(*args, **kwargs)
+  File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\torc
+h\nn\modules\normaliz
+ation.py", line 327, 
+in forward
+    return F.group_no
+rm(input, self.num_gr
+oups, self.weight, se
+lf.bias, self.eps)
+  File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\torc
+h\nn\functional.py", 
+line 2990, in group_n
+orm
+    return torch.grou
+p_norm(
+RuntimeError: Expecte
+d number of channels 
+in input to be divisi
+ble by num_groups, bu
+t got input of shape 
+[2, 3, 16] and num_gr
+oups=16
+
+=====================
+=====================
+=====================
+=======
+ERROR: test_forward_l
+oss_computation (test
+_causal_tabdiff.TestC
+ausalTabDiff)
+Ensure the forward pa
+ss computes diffusion
+ and energy losses co
+rrectly.
+---------------------
+---------------------
+---------------------
+-------
+Traceback (most recen
+t call last):
+  File "D:\CodeReposi
+tory\UESTC\project_2\
+tests\test_causal_tab
+diff.py", line 21, in
+ test_forward_loss_co
+mputation
+    diff_loss, disc_l
+oss = self.model(x_0,
+ alpha_target)
+  File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\torc
+h\nn\modules\module.p
+y", line 1776, in _wr
+apped_call_impl
+    return self._call
+_impl(*args, **kwargs
+)
+  File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\torc
+h\nn\modules\module.p
+y", line 1787, in _ca
+ll_impl
+    return forward_ca
+ll(*args, **kwargs)
+  File "D:\CodeReposi
+tory\UESTC\project_2\
+src\models\causal_tab
+diff.py", line 156, i
+n forward
+    h = self.block1(x
+_t, c_emb)
+  File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\torc
+h\nn\modules\module.p
+y", line 1776, in _wr
+apped_call_impl
+    return self._call
+_impl(*args, **kwargs
+)
+  File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\torc
+h\nn\modules\module.p
+y", line 1787, in _ca
+ll_impl
+    return forward_ca
+ll(*args, **kwargs)
+  File "D:\CodeReposi
+tory\UESTC\project_2\
+src\models\causal_tab
+diff.py", line 47, in
+ forward
+    x_time = self.ada
+_gn_time(x, c)
+  File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\torc
+h\nn\modules\module.p
+y", line 1776, in _wr
+apped_call_impl
+    return self._call
+_impl(*args, **kwargs
+)
+  File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\torc
+h\nn\modules\module.p
+y", line 1787, in _ca
+ll_impl
+    return forward_ca
+ll(*args, **kwargs)
+  File "D:\CodeReposi
+tory\UESTC\project_2\
+src\models\causal_tab
+diff.py", line 15, in
+ forward
+    x = self.norm(x)
+  File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\torc
+h\nn\modules\module.p
+y", line 1776, in _wr
+apped_call_impl
+    return self._call
+_impl(*args, **kwargs
+)
+  File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\torc
+h\nn\modules\module.p
+y", line 1787, in _ca
+ll_impl
+    return forward_ca
+ll(*args, **kwargs)
+  File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\torc
+h\nn\modules\normaliz
+ation.py", line 327, 
+in forward
+    return F.group_no
+rm(input, self.num_gr
+oups, self.weight, se
+lf.bias, self.eps)
+  File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\torc
+h\nn\functional.py", 
+line 2990, in group_n
+orm
+    return torch.grou
+p_norm(
+RuntimeError: Expecte
+d number of channels 
+in input to be divisi
+ble by num_groups, bu
+t got input of shape 
+[4, 3, 16] and num_gr
+oups=16
+
+=====================
+=====================
+=====================
+=======
+ERROR: test_zero_guid
+ance_sampling (test_c
+ausal_tabdiff.TestCau
+salTabDiff)
+Step B: Boundary Cond
+ition Test - Zero Eff
+ect (No Causal Guidan
+ce)
+---------------------
+---------------------
+---------------------
+-------
+Traceback (most recen
+t call last):
+  File "D:\CodeReposi
+tory\UESTC\project_2\
+tests\test_causal_tab
+diff.py", line 56, in
+ test_zero_guidance_s
+ampling
+    out_zero = self.m
+odel.sample_with_guid
+ance(1, alpha_target,
+ guidance_scale=0.0)
+  File "D:\CodeReposi
+tory\UESTC\project_2\
+src\models\causal_tab
+diff.py", line 183, i
+n sample_with_guidanc
+e
+    pred_noise = self
+.block1(x, c_emb)
+  File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\torc
+h\nn\modules\module.p
+y", line 1776, in _wr
+apped_call_impl
+    return self._call
+_impl(*args, **kwargs
+)
+  File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\torc
+h\nn\modules\module.p
+y", line 1787, in _ca
+ll_impl
+    return forward_ca
+ll(*args, **kwargs)
+  File "D:\CodeReposi
+tory\UESTC\project_2\
+src\models\causal_tab
+diff.py", line 47, in
+ forward
+    x_time = self.ada
+_gn_time(x, c)
+  File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\torc
+h\nn\modules\module.p
+y", line 1776, in _wr
+apped_call_impl
+    return self._call
+_impl(*args, **kwargs
+)
+  File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\torc
+h\nn\modules\module.p
+y", line 1787, in _ca
+ll_impl
+    return forward_ca
+ll(*args, **kwargs)
+  File "D:\CodeReposi
+tory\UESTC\project_2\
+src\models\causal_tab
+diff.py", line 15, in
+ forward
+    x = self.norm(x)
+  File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\torc
+h\nn\modules\module.p
+y", line 1776, in _wr
+apped_call_impl
+    return self._call
+_impl(*args, **kwargs
+)
+  File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\torc
+h\nn\modules\module.p
+y", line 1787, in _ca
+ll_impl
+    return forward_ca
+ll(*args, **kwargs)
+  File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\torc
+h\nn\modules\normaliz
+ation.py", line 327, 
+in forward
+    return F.group_no
+rm(input, self.num_gr
+oups, self.weight, se
+lf.bias, self.eps)
+  File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\torc
+h\nn\functional.py", 
+line 2990, in group_n
+orm
+    return torch.grou
+p_norm(
+RuntimeError: Expecte
+d number of channels 
+in input to be divisi
+ble by num_groups, bu
+t got input of shape 
+[1, 3, 16] and num_gr
+oups=16
+
+---------------------
+---------------------
+---------------------
+-------
+Ran 3 tests in 0.053s
+
+FAILED (errors=3)
+
+ERROR conda.cli.main_
+run:execute(125): `co
+nda run python -m uni
+ttest discover tests/
+` failed. (See above 
+for error)

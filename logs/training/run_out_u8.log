@@ -1,0 +1,101 @@
+﻿conda.exe : 2026-02-23 17
+:24:06,648 - DEBUG - DEBU
+G MODE ENABLED. Using con
+strained dataset and forc
+ing CPU.
+所在位置 D:\anaconda3\shell\c
+ondabin\Conda.psm1:153 字符
+: 17
++ ...             & $Env:
+CONDA_EXE $Env:_CE_M $Env
+:_CE_CONDA $Command @Othe
+ ...
++                 ~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo       
+       : NotSpecified:   
+  (2026-02-23 17:2...n   
+ d forcing CPU.:Strin    
+g) [], RemoteExcepti    o
+n
+    + FullyQualifiedErro 
+   rId : NativeCommandE  
+  rror
+ 
+2026-02-23 17:24:06,648 -
+ INFO - Using device: cpu
+2026-02-23 17:24:06,648 -
+ DEBUG - Loading dataset.
+..
+2026-02-23 17:24:06,680 -
+ DEBUG - Data shapes infe
+rred - T steps: 3, Featur
+e Dim: 3
+2026-02-23 17:24:09,041 -
+ INFO - Starting Training
+ Loop...
+2026-02-23 17:24:09,107 -
+ DEBUG - Epoch 1/2 | Diff
+ Loss: 1.9089 | Disc Loss
+: 0.1931
+2026-02-23 17:24:09,123 -
+ DEBUG - Epoch 2/2 | Diff
+ Loss: 2.0025 | Disc Loss
+: 0.3978
+2026-02-23 17:24:09,123 -
+ INFO - Training Complete
+.
+2026-02-23 17:24:09,123 -
+ INFO - Testing Gradient 
+Guided Sampling...
+Traceback (most recent ca
+ll last):
+  File "D:\CodeRepository
+\UESTC\project_2\run_expe
+riment.py", line 90, in <
+module>
+    main()
+  File "D:\CodeRepository
+\UESTC\project_2\run_expe
+riment.py", line 85, in m
+ain
+    sampled = model.sampl
+e_with_guidance(batch_siz
+e=1, alpha_target=sample_
+alpha, guidance_scale=2.0
+)
+  File "D:\CodeRepository
+\UESTC\project_2\src\mode
+ls\causal_tabdiff.py", li
+ne 204, in sample_with_gu
+idance
+    grad_U = torch.autogr
+ad.grad(energy, x_in)[0]
+  File "D:\anaconda3\envs
+\causal_tabdiff\lib\site-
+packages\torch\autograd\_
+_init__.py", line 515, in
+ grad
+    result = _engine_run_
+backward(
+  File "D:\anaconda3\envs
+\causal_tabdiff\lib\site-
+packages\torch\autograd\g
+raph.py", line 865, in _e
+ngine_run_backward
+    return Variable._exec
+ution_engine.run_backward
+(  # Calls into the C++ e
+ngine to run the backward
+ pass
+RuntimeError: element 0 o
+f tensors does not requir
+e grad and does not have 
+a grad_fn
+
+ERROR conda.cli.main_run:
+execute(125): `conda run 
+python run_experiment.py 
+--debug_mode` failed. (Se
+e above for error)
