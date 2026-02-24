@@ -3,3 +3,8 @@ numpy
 pandas
 scikit-learn
 tqdm
+econml
+tabulate
+xgboost
+ml_collections
+tensorboard

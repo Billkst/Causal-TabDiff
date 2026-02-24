@@ -3,27 +3,41 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
 from scipy.stats import norm
+import json
+import os
 
 class NLSTDataset(Dataset):
     def __init__(self, data_dir, debug_mode=False):
         """
-        Loads the NLST dataset and applies transformations.
-        - Continuous variables: Gaussian Quantile Transformation
-        - Categorical variables: Analog Bits Encoding
+        Loads the NLST dataset and applies transformations anchored by dataset_metadata.json.
         """
         self.data_dir = data_dir
         self.debug_mode = debug_mode
+        self._load_metadata()
         self._load_data()
         
+    def _load_metadata(self):
+        meta_path = os.path.join(os.path.dirname(__file__), 'dataset_metadata.json')
+        if not os.path.exists(meta_path):
+            import subprocess, sys
+            print(f"Metadata not found at {meta_path}. Auto-generating it.")
+            gen_script = os.path.join(os.path.dirname(__file__), 'generate_metadata.py')
+            subprocess.run([sys.executable, gen_script], check=True)
+            
+        with open(meta_path, 'r') as f:
+            self.metadata = json.load(f)
+            
+        self.continuous_cols = [c['name'] for c in self.metadata['continuous']]
+        self.categorical_cols = [c['name'] for c in self.metadata['categorical']]
+        self.y_col = self.metadata['y_col']['name']
+        self.cat_meta_map = {c['name']: c for c in self.metadata['categorical']}
+        
     def _load_data(self):
-        import os
         prsn_path = os.path.join(self.data_dir, 'nlst.780.idc.delivery.052821', 'nlst_780_prsn_idc_20210527.csv')
         screen_path = os.path.join(self.data_dir, 'nlst.780.idc.delivery.052821', 'nlst_780_screen_idc_20210527.csv')
         ctab_path = os.path.join(self.data_dir, 'nlst.780.idc.delivery.052821', 'nlst_780_ctab_idc_20210527.csv')
-        ctabc_path = os.path.join(self.data_dir, 'nlst.780.idc.delivery.052821', 'nlst_780_ctabc_idc_20210527.csv')
         canc_path = os.path.join(self.data_dir, 'nlst.780.idc.delivery.052821', 'nlst_780_canc_idc_20210527.csv')
         
-        # Load datasets (using limited rows for debug_mode to save memory)
         nrows = 100 if self.debug_mode else None
         
         try:
@@ -31,83 +45,109 @@ class NLSTDataset(Dataset):
             self.screen_df = pd.read_csv(screen_path, nrows=nrows)
             self.ctab_df = pd.read_csv(ctab_path, nrows=nrows)
             self.canc_df = pd.read_csv(canc_path, nrows=nrows)
-            # Mocking data processing for the sake of the framework
-            # Normally we would merge these by pid and study_yr
-            self.merged_df = self.prsn_df.copy()
+            
+            self.merged_df = pd.merge(self.prsn_df, self.canc_df[['pid', self.y_col]], on='pid', how='left')
+            self.merged_df[self.y_col] = self.merged_df[self.y_col].fillna(0).astype(int)
+            
             if 'age' not in self.merged_df.columns:
                  self.merged_df['age'] = np.random.randint(50, 80, size=len(self.merged_df))
                  
-            # Dummy features for the diffusion model
-            # T timeline = 3 (T0, T1, T2)
-            # 1. Continuous (e.g., age, BMI proxy) - will apply Gaussian Quantile
-            self.continuous_cols = ['age']
-            # 2. Categorical (e.g., gender) - will apply Analog Bits
-            self.categorical_cols = ['gender']
-            
             self._preprocess()
         except Exception as e:
-            # Fallback random data if files cannot be parsed due to format mismatch
             print(f"Error loading datasets: {e}. Generating mock data for debug.")
             size = 32 if self.debug_mode else 1000
+            y_mock = np.array([0]*(size//2) + [1]*(size - size//2))
+            np.random.shuffle(y_mock)
+            
             self.merged_df = pd.DataFrame({
                 'pid': range(size),
                 'age': np.random.normal(60, 5, size),
-                'gender': np.random.choice([1, 2], size)
+                'bmi': np.random.normal(25, 3, size),
+                'gender': np.random.choice([1, 2], size),
+                'smoke_hist': np.random.choice([0, 1, 2, 3], size),
+                'screen_group': np.random.choice([1, 2], size),
+                self.y_col: y_mock
             })
-            self.continuous_cols = ['age']
-            self.categorical_cols = ['gender']
             self._preprocess()
             
     def _gaussian_quantile_transform(self, series):
         """Eq 25: \tilde{x}_{num} = \Phi^{-1}(F_{emp}(x_{num}))"""
-        # Add small noise to handle tied ranks
         s_noise = series + np.random.normal(0, 1e-6, len(series))
         ranks = s_noise.rank(method='average')
-        # Map to (0, 1) to avoid infinity
         uniform = (ranks - 0.5) / len(ranks) 
         return norm.ppf(uniform)
         
-    def _analog_bits_encode(self, series, k_classes=None):
-        """Eq 26: x_{analog} = 2b - 1 \in \{-1, 1\}^m"""
-        if k_classes is None:
-            k_classes = int(series.nunique())
-        m_bits = int(np.ceil(np.log2(k_classes + 1e-5))) if k_classes > 1 else 1
+    def _analog_bits_encode(self, series, col_name):
+        """Eq 26: x_{analog} = 2b - 1 \in \{-1, 1\}^m mapped via static metadata."""
+        meta = self.cat_meta_map[col_name]
+        m_bits = meta['analog_bits']
+        val_to_idx = meta['val_to_idx']
         
         encoded = []
         for val in series:
-             # Convert to bin string, then list of ints
-             idx = int(val) if not np.isnan(val) else 0
-             b_str = format(idx, f'0{m_bits}b')
-             b_vec = np.array([int(c) for c in b_str])
-             analog_vec = 2.0 * b_vec - 1.0
-             encoded.append(analog_vec)
+            # Map raw value to 0..K-1 index based on immutable JSON schema
+            idx_str = str(int(val)) if not np.isnan(val) else "0"
+            idx_int = int(val_to_idx.get(idx_str, 0))
+            
+            b_str = format(idx_int, f'0{m_bits}b')
+            b_vec = np.array([int(c) for c in b_str])
+            analog_vec = 2.0 * b_vec - 1.0
+            encoded.append(analog_vec)
+        return np.vstack(encoded)
+
+    def _raw_cat_encode(self, series, col_name):
+        """Extracts exact categorical [0, K-1] indices directly from JSON metadata mapping."""
+        meta = self.cat_meta_map[col_name]
+        val_to_idx = meta['val_to_idx']
+        
+        encoded = []
+        for val in series:
+            idx_str = str(int(val)) if not np.isnan(val) else "0"
+            idx_int = int(val_to_idx.get(idx_str, 0))
+            encoded.append([idx_int])
         return np.vstack(encoded)
 
     def _preprocess(self):
         self.num_samples = len(self.merged_df)
         self.T = 3 # T0, T1, T2
         
-        # 1. Continuous
-        transformed_cont = np.zeros((self.num_samples, len(self.continuous_cols)))
-        for i, col in enumerate(self.continuous_cols):
-             transformed_cont[:, i] = self._gaussian_quantile_transform(self.merged_df[col])
-             
-        # 2. Categorical
-        analog_list = []
-        for col in self.categorical_cols:
-             analog_feat = self._analog_bits_encode(self.merged_df[col])
-             analog_list.append(analog_feat)
-        transformed_cat = np.concatenate(analog_list, axis=1) if len(analog_list) > 0 else np.zeros((self.num_samples, 0))
+        # Determine total dimensions based on original column sequence
+        D_orig = sum([c['dim'] for c in self.metadata['columns']])
+        num_cats = len([c for c in self.metadata['columns'] if c['type'] == 'categorical'])
         
-        # 3. Assemble x_orig shape (N, D_orig). Assuming static for all T for simple mock
-        D_orig = transformed_cont.shape[1] + transformed_cat.shape[1]
         self.X_input = np.zeros((self.num_samples, self.T, D_orig))
+        self.X_cat_raw = np.zeros((self.num_samples, self.T, num_cats))
+        
+        feature_offset = 0
+        cat_idx = 0
+        
         for t in range(self.T):
-             self.X_input[:, t, :transformed_cont.shape[1]] = transformed_cont
-             self.X_input[:, t, transformed_cont.shape[1]:] = transformed_cat
+            feature_offset = 0
+            cat_idx = 0
+            for col_meta in self.metadata['columns']:
+                col = col_meta['name']
+                col_type = col_meta['type']
+                col_dim = col_meta['dim']
+                
+                if col_type == 'continuous':
+                    transformed = self._gaussian_quantile_transform(self.merged_df[col])
+                    self.X_input[:, t, feature_offset : feature_offset + col_dim] = transformed.reshape(-1, 1)
+                else:
+                    analog_feat = self._analog_bits_encode(self.merged_df[col], col)
+                    raw_feat = self._raw_cat_encode(self.merged_df[col], col)
+                    
+                    self.X_input[:, t, feature_offset : feature_offset + col_dim] = analog_feat
+                    self.X_cat_raw[:, t, cat_idx : cat_idx + 1] = raw_feat
+                    cat_idx += 1
+                
+                feature_offset += col_dim
              
         # Generate dummy causal conditions (alpha target representing environmental exposure)
+        # We will use this as our Treatment T
         self.alpha_target = np.random.uniform(0.1, 0.9, size=(self.num_samples, 1))
+        
+        # Ground truth Y (Outcome)
+        self.y = self.merged_df[self.y_col].values.reshape(-1, 1)
 
     def __len__(self):
         return self.num_samples
@@ -115,7 +155,9 @@ class NLSTDataset(Dataset):
     def __getitem__(self, idx):
         return {
             'x': torch.tensor(self.X_input[idx], dtype=torch.float32),
-            'alpha_target': torch.tensor(self.alpha_target[idx], dtype=torch.float32)
+            'x_cat_raw': torch.tensor(self.X_cat_raw[idx], dtype=torch.long),
+            'alpha_target': torch.tensor(self.alpha_target[idx], dtype=torch.float32),
+            'y': torch.tensor(self.y[idx], dtype=torch.float32)
         }
 
 def get_dataloader(data_dir, batch_size=32, debug_mode=False):
