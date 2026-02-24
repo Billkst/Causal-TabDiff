@@ -1,0 +1,89 @@
+{
+    "columns": [
+        {
+            "name": "age",
+            "type": "continuous",
+            "dim": 1
+        },
+        {
+            "name": "bmi",
+            "type": "continuous",
+            "dim": 1
+        },
+        {
+            "name": "gender",
+            "type": "categorical",
+            "dim": 1
+        },
+        {
+            "name": "smoke_hist",
+            "type": "categorical",
+            "dim": 2
+        },
+        {
+            "name": "screen_group",
+            "type": "categorical",
+            "dim": 1
+        }
+    ],
+    "continuous": [
+        {
+            "name": "age",
+            "dim": 1
+        },
+        {
+            "name": "bmi",
+            "dim": 1
+        }
+    ],
+    "categorical": [
+        {
+            "name": "gender",
+            "classes": 2,
+            "analog_bits": 1,
+            "val_to_idx": {
+                "1": 0,
+                "2": 1
+            },
+            "idx_to_val": {
+                "0": 1,
+                "1": 2
+            }
+        },
+        {
+            "name": "smoke_hist",
+            "classes": 4,
+            "analog_bits": 2,
+            "val_to_idx": {
+                "0": 0,
+                "1": 1,
+                "2": 2,
+                "3": 3
+            },
+            "idx_to_val": {
+                "0": 0,
+                "1": 1,
+                "2": 2,
+                "3": 3
+            }
+        },
+        {
+            "name": "screen_group",
+            "classes": 2,
+            "analog_bits": 1,
+            "val_to_idx": {
+                "1": 0,
+                "2": 1
+            },
+            "idx_to_val": {
+                "0": 1,
+                "1": 2
+            }
+        }
+    ],
+    "y_col": {
+        "name": "cancyr",
+        "classes": 2,
+        "analog_bits": 0
+    }
+}

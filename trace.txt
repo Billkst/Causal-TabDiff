@@ -1,0 +1,331 @@
+Traceback (most recen
+t call last):
+File "D:\CodeReposi
+tory\UESTC\project_2\
+run_baselines.py", li
+ne 90, in compute_met
+rics
+model_real.fit(Y=
+real_y_bounds, T=t, X
+=real_x_flat)
+File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\econ
+ml\dml\dml.py", line
+956, in fit
+return super().fi
+t(Y, T, X=X, W=W,
+Error loading datasets: "['cancyr'] not in index". Generating mock data for debug.
+self.category_embeddings.weight.shape=torch.Size([26, 4])
+self.category_embeddings.weight.shape=torch.Size([26, 4])
+
+File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\econ
+ml\dml\dml.py", line
+616, in fit
+return super().fi
+t(Y, T, X=X, W=W, sam
+ple_weight=sample_wei
+ght, freq_weight=freq
+_weight,
+File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\econ
+ml\dml\_rlearner.py",
+line 501, in fit
+return super().fi
+t(Y, T, X=X, W=W,
+File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\econ
+ml\_cate_estimator.py
+", line 134, in call
+m(self, Y, T, *ar
+gs, **kwargs)
+File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\econ
+ml\_ortho_learner.py"
+, line 821, in fit
+nuisances, fitted
+_models, new_inds, sc
+ores = self._fit_nuis
+ances(
+File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\econ
+ml\_ortho_learner.py"
+, line 971, in _fit_n
+uisances
+nuisances, fitted
+_models, fitted_inds,
+scores = _crossfit(s
+elf._ortho_learner_mo
+del_nuisance, folds,
+File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\econ
+ml\_ortho_learner.py"
+, line 278, in _cross
+fit
+nuisance_temp, mo
+del_out, score_temp =
+_fit_fold(model, tra
+in_idxs, test_idxs,
+File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\econ
+ml\_ortho_learner.py"
+, line 97, in _fit_fo
+ld
+model.train(False
+, None, *args_train,
+**kwargs_train)
+File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\econ
+ml\dml\_rlearner.py",
+line 55, in train
+self._model_t.tra
+in(is_selecting, fold
+s, X, W, T, **
+File "D:\anaconda3\
+envs\causal_tabdiff\l
+ib\site-packages\econ
+ml\dml\dml.py", line
+106, in train
+raise AttributeEr
+ror("Provided crossfi
+t folds contain train
+ing splits that " +
+AttributeError: Provi
+ded crossfit folds co
+ntain training splits
+that don't contain a
+ll treatments
+
+The above exception w
+as the direct cause o
+f the following excep
+tion:
+
+Traceback (most recen
+t call last):
+File "D:\CodeReposi
+tory\UESTC\project_2\
+run_baselines.py", li
+ne 252, in main
+metrics_dict = co
+mpute_metrics(real_x_
+full, fake_x_full, re
+al_y_full, fake_y_ful
+l, alpha_full)
+File "D:\CodeReposi
+tory\UESTC\project_2\
+run_baselines.py", li
+ne 101, in compute_me
+trics
+raise RuntimeErro
+r(f"Strict Halting: D
+ML calculation failed
+mathematically. ({e}
+)") from e
+RuntimeError: Strict
+Halting: DML calculat
+ion failed mathematic
+ally. (Provided cross
+fit folds contain tra
+ining splits that don
+'t contain all treatm
+ents)
+2026-02-24 21:25:39,0
+15 - ERROR - Metrics
+Evaluation halted for
+TabSyn (ICLR 24) on
+Seed 1024: Strict Hal
+ting: DML calculation
+failed mathematicall
+y. (Provided crossfit
+folds contain traini
+ng splits that don't
+contain all treatment
+s)
+2026-02-24 21:25:39,0
+15 - INFO - Evaluatin
+g TabDiff (ICLR 25)..
+.
+2026-02-24 21:25:39,0
+19 - INFO - Training
+TabDiff (ICLR 2025) (
+Debug)...
+2026-02-24 21:25:39,1
+62 - INFO - Sampling
+and Evaluating metric
+s...
+
+0%|          | 0/10
+[00:00<?, ?it/s]
+Sampling Progress:
+0%|          | 0/10 [
+00:00<?, ?it/s]
+Sampling Progress:  6
+0%|鈻堚枅鈻堚枅鈻堚枅    | 6/1
+0 [00:00<00:00, 59.74
+it/s]
+Sampling Progress: 10
+0%|鈻堚枅鈻堚枅鈻堚枅鈻堚枅鈻堚枅| 1
+0/10 [00:00<00:00, 67
+.57it/s]
+
+0%|          | 0/10
+[00:00<?, ?it/s]
+Sampling Progress:
+0%|          | 0/10 [
+00:00<?, ?it/s]
+Sampling Progress:  7
+0%|鈻堚枅鈻堚枅鈻堚枅鈻\ufffd
+| 7/10 [00:00<00:00,
+58.51it/s]
+Sampling Progress: 10
+0%|鈻堚枅鈻堚枅鈻堚枅鈻堚枅鈻堚枅| 1
+0/10 [00:00<00:00, 50
+.74it/s]
+D:\anaconda3\envs\cau
+sal_tabdiff\lib\site-
+packages\numpy\lib\_f
+unction_base_impl.py:
+3045: RuntimeWarning:
+invalid value encoun
+tered in divide
+c /= stddev[:, None
+]
+D:\anaconda3\envs\cau
+sal_tabdiff\lib\site-
+packages\numpy\lib\_f
+unction_base_impl.py:
+3046: RuntimeWarning:
+invalid value encoun
+tered in divide
+c /= stddev[None, :
+]
+D:\anaconda3\envs\cau
+sal_tabdiff\lib\site-
+packages\econml\sklea
+rn_extensions\linear_
+model.py:1815: UserWa
+rning: Co-variance ma
+trix is underdetermin
+ed. Inference will be
+invalid!
+warnings.warn("Co-v
+ariance matrix is und
+erdetermined. Inferen
+ce will be invalid!")
+D:\anaconda3\envs\cau
+sal_tabdiff\lib\site-
+packages\econml\sklea
+rn_extensions\linear_
+model.py:1818: UserWa
+rning: Number of obse
+rvations <= than numb
+er of parameters. Usi
+ng biased variance ca
+lculation!
+warnings.warn("Numb
+er of observations <=
+than number of param
+eters. Using biased v
+ariance calculation!"
+)
+D:\anaconda3\envs\cau
+sal_tabdiff\lib\site-
+packages\econml\sklea
+rn_extensions\linear_
+model.py:1815: UserWa
+rning: Co-variance ma
+trix is underdetermin
+ed. Inference will be
+invalid!
+warnings.warn("Co-v
+ariance matrix is und
+erdetermined. Inferen
+ce will be invalid!")
+D:\anaconda3\envs\cau
+sal_tabdiff\lib\site-
+packages\econml\sklea
+rn_extensions\linear_
+model.py:1818: UserWa
+rning: Number of obse
+rvations <= than numb
+er of parameters. Usi
+ng biased variance ca
+lculation!
+warnings.warn("Numb
+er of observations <=
+than number of param
+eters. Using biased v
+ariance calculation!"
+)
+D:\anaconda3\envs\cau
+sal_tabdiff\lib\site-
+packages\xgboost\trai
+ning.py:200: UserWarn
+ing: [21:25:39] WARNI
+NG: C:\actions-runner
+\_work\xgboost\xgboos
+t\src\learner.cc:782:
+
+Parameters: { "use_la
+bel_encoder" } are no
+t used.
+
+bst.update(dtrain,
+iteration=i, fobj=obj
+)
+2026-02-24 21:25:39,5
+97 - INFO - === Aggre
+gating Results ===
+2026-02-24 21:25:39,6
+00 - INFO -
+| Model
+| ATE_Bias
+| Wasserstein     |
+CMD             | TST
+R_AUC        | TSTR_F
+1         |
+|--------------------
+----|----------------
+-|-----------------|-
+----------------|----
+-------------|-------
+----------|
+| CausalForest (Class
+ic) | 1.0383 卤 0.0603
+| 0.7606 卤 0.0643 |
+0.5540 卤 0.0866 | 0.5
+000 卤 0.0000 | 0.0000
+卤 0.0000 |
+| STaSy (ICLR 23)
+| 1.2743 卤 0.2796
+| 1.4360 卤 0.0806 |
+0.8410 卤 0.0059 | 0.5
+000 卤 0.0000 | 0.0000
+卤 0.0000 |
+| TabSyn (ICLR 24)
+| nan 卤 nan
+| nan 卤 nan       |
+nan 卤 nan       | nan
+卤 nan       | nan 卤
+nan       |
+| TabDiff (ICLR 25)
+| 2.0000 卤 0.0000
+| 0.6694 卤 0.0235 |
+0.6894 卤 0.0626 | 0.5
+000 卤 0.0000 | 0.3333
+卤 0.3333 |
+2026-02-24 21:25:39,6
+03 - INFO - Reports s
+aved to markdown_repo
+rt.md and latex_repor
+t.txt

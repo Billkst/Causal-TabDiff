@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "D:\CodeRepository\UESTC\project_2\debug_run.py", line 9, in main
+    run_baselines.main()
+  File "D:\CodeRepository\UESTC\project_2\run_baselines.py", line 230, in main
+    assert fake_x.shape[-1] == real_x.shape[-1], f"Strict 5D Enforcement: Wrapper fake_x yielded shape {fake_x.shape}, expected semantic shape {real_x.shape}!"
+AssertionError: Strict 5D Enforcement: Wrapper fake_x yielded shape torch.Size([4, 3, 6]), expected semantic shape torch.Size([4, 3, 5])!

@@ -1,0 +1,15 @@
+data/nlst.780.idc.delivery.052821\nlst_780_canc_idc_20210527.csv:
+pid,lc_topog,topog_source,de_type,de_grade,de_stag,path_stag,clinical_stag,stage_sum,valcsg,clinical_t_7thed,clinical_n_7thed,clinical_m_7thed,path_t_7thed,path_n_7thed,path_m_7thed,de_stag_7thed,first_lc,lesionsize,lc_morph,lc_behav,lc_grade,source_best_stage,clinical_t,path_t,clinical_n,path_n,clinical_m,path_m,stage_only,study_yr,dataset_version,lc_order,candx_days
+
+data/nlst.780.idc.delivery.052821\nlst_780_ctabc_idc_20210527.csv:
+study_yr,sct_ab_preexist,pid,sct_ab_attn,sct_ab_gwth,sct_ab_invg,sct_ab_num,sct_ab_code,dataset_version,visible_days
+
+data/nlst.780.idc.delivery.052821\nlst_780_ctab_idc_20210527.csv:
+sct_ab_desc,sct_ab_num,sct_epi_loc,sct_long_dia,sct_margins,sct_perp_dia,sct_pre_att,study_yr,sct_slice_num,sct_found_after_comp,pid,dataset_version
+
+data/nlst.780.idc.delivery.052821\nlst_780_prsn_idc_20210527.csv:
+race,cigsmok,gender,age,loclhil,locllow,loclup,locrhil,locrlow,locrmid,locunk,locrup,locoth,locmed,loclmsb,locrmsb,loccar,loclin,lesionsize,de_type,de_grade,de_stag,scr_res0,scr_res1,scr_res2,scr_iso0,scr_iso1,scr_iso2,cancyr,can_scr,canc_rpt_link,pid,dataset_version,scr_days0,scr_days1,scr_days2,candx_days,canc_free_days,de_stag_7thed
+
+data/nlst.780.idc.delivery.052821\nlst_780_screen_idc_20210527.csv:
+pid,ctdxqual,study_yr,techpara_kvp,techpara_ma,techpara_fov,techpara_effmas,ct_recon_filter1,ct_recon_filter2,ctdxqual_breath,ctdxqual_motion,ctdxqual_resp,ctdxqual_techpara,ctdxqual_inadeqimg,ctdxqual_artifact,ctdxqual_graininess,ctdxqual_other,ct_recon_filter3,ct_recon_filter4,dataset_version
+

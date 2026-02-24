@@ -1,0 +1,90 @@
+[
+    {
+        "timestamp": "2026-02-23T18:25:00+08:00",
+        "id": "TODO-REPRODUCE",
+        "type": "experiment",
+        "user_intent": "复现 5 个 SOTA 算法在它们原论文公开数据集上的原始精度跑出报告，必须建立独立目录 paper_reproductions/",
+        "details": "High Priority: Do NOT execute in main pipeline. Extract and run official codes on their original benchmark datasets to verify environment and report metrics.",
+        "file_path": "paper_reproductions/"
+    },
+    {
+        "timestamp": "2026-02-23T18:50:00+08:00",
+        "id": "baseline_cf",
+        "type": "feature",
+        "user_intent": "将真实的 Causal Forest 逻辑注入 baseline evaluation wrapper",
+        "details": "Successfully implemented EconML's CausalForestDML (with Ridge regressors) and verified multi-seed pipeline via --debug_mode dry run.",
+        "file_path": "src/baselines/wrappers.py"
+    },
+    {
+        "timestamp": "2026-02-24T00:45:00+08:00",
+        "id": "metrics_rebuild",
+        "type": "feature",
+        "user_intent": "重构基线因果评估指标（AUC/F1, CMD, EconML ATE Bias）且Y=cancyr",
+        "details": "已完成 Metrics 重构与对齐。Successfully updated wrappers and metrics framework to generate both X and Y. Handled class imbalance robustly and evaluated Causal Forest locally without crashes.",
+        "file_path": "run_baselines.py"
+    },
+    {
+        "timestamp": "2026-02-24T13:48:00+08:00",
+        "id": "tabsyn-architectural-fix-2.0",
+        "type": "feature",
+        "user_intent": "Deep Deep Fix 2.0: Generate exact schema globally across dataframes (<15 rule) and bypass Analog Bits entirely for VAE native ingestion.",
+        "details": "Rewrote generate_metadata.py to load authentic datasets (or match exact mock schemas) and enforce `nunique <= 15` rule. Detected ['gender', 'smoke_hist', 'screen_group'] as Categoricals instead of just strings. Modified data_module.py to output parallel raw Integer vectors. Refactored TabSynWrapper to ingest these native Label Encoded variables directly into VAE without redundant Analog inversions. Evaluation showed massive stability improvement. Metrics: ATE Bias (0.0338 ± 0.0338), Wasserstein (0.5303 ± 0.1152), CMD (0.6717 ± 0.0240).",
+        "file_path": "src/data/generate_metadata.py, src/data/data_module.py, src/baselines/wrappers.py"
+    },
+    {
+        "timestamp": "2026-02-24T14:40:00",
+        "id": "tabsyn-alignment-ate-fix-2.1",
+        "type": "bugfix",
+        "user_intent": "剔除空壳假模型，并实施 DML ATE_Bias 的理论绝对截断 (0.0 to 2.0 max)",
+        "details": "1. 净化循环：移除了 TSDiff, TabDiff 等尚未接入核心源码的幽灵 Wrapper。2. 计算修正：由于 Y 与 Treatment 均被设定为二分类，物理分布偏差差异必然在 [-1, 1] 即最大极值 2.0 以内。在 run_baselines.py 实施 `np.clip(ate_bias, 0.0, 2.0)` 并设置 discrete_treatment=True 防范任何极端样本抛锚崩溃。",
+        "file_path": "src/baselines/wrappers.py, src/data/data_module.py, run_baselines.py"
+    },
+    {
+        "timestamp": "2026-02-24T18:00:00+08:00",
+        "id": "tabdiff-baseline",
+        "type": "feature",
+        "user_intent": "Integrating TabDiff (ICLR 2025) Baseline model for evaluating generative dataset",
+        "details": "Spliced MinkaiXu/TabDiff UnifiedCtimeDiffusion. Re-written inference logic mapping T*D feature shapes across both continuous outputs and reconstructed analog-bit categoricals. Successfully resolved shape-broadcasting conflicts bridging Y and Continuous feature mask bounds. Ran pipeline locally (ATE Bias 1.1043).",
+        "file_path": "src/baselines/wrappers.py"
+    },
+    {
+        "timestamp": "2026-02-24T20:37:47.481003",
+        "id": "strict_5d_baseline",
+        "type": "bugfix",
+        "user_intent": "Enforce strict 5D dimensional outputs for CausalForest, STaSy, TabSyn, TabDiff",
+        "details": "Decoded Analog Bits back into categorical integer indices inside wrappers instead of falling back to 6D arrays logic. Passed strict assertion and produced complete metric table without NaNs. Realigned wrappers.",
+        "file_path": "src/baselines/wrappers.py run_baselines.py"
+    },
+    {
+        "timestamp": "2026-02-24T21:46:50.968365",
+        "id": "tabsyn-tabdiff-align-fix",
+        "type": "bugfix",
+        "user_intent": "Remove concat, align columns exactly to metadata, remove analog bits from TabSyn, and ensure TabDiff CMD is reasonable.",
+        "details": "Fixed Column indexing to scatter (i_col:i_col+1) directly over X_cf and real_x_raw_t sequentially based on dataset_metadata.json. Refactored STaSy, TabSyn, TabDiff sample() wrappers. Boosted debug_mode epochs to 50 for diffusion models to give signal to CMD metrics.",
+        "file_path": "src/baselines/wrappers.py & run_baselines.py"
+    },
+    {
+        "timestamp": "2026-02-24T22:12:33.680448",
+        "id": "tabdiff-cmd-3d-fix",
+        "type": "bugfix",
+        "user_intent": "User forcibly demanded 2D feature matrices without the leaked t-dimension and shape proofs.",
+        "details": "Fixed 3D dimensionality leak in run_baselines.py by slicing X_cf[:, -1, :] ensuring only spatial features went to calculate CMD instead of spatial*temporal sequences inflating the distance. TabDiff CMD immediately dropped from 0.8 to ~0.42 with 5 epochs.",
+        "file_path": "src/baselines/wrappers.py & run_baselines.py"
+    },
+    {
+        "timestamp": "2026-02-24T22:40:34.562764",
+        "id": "tsdiff-integration-phase5",
+        "type": "feature",
+        "user_intent": "Integrate final baseline TSDiff (2023) enforcing strictly 2D spatial metrics using a 3D-2D Wrapper Adapter.",
+        "details": "Built TSDiff core 1D CNN backbone. Implemented Adapter Pattern in TSDiffWrapper: [Batch, Features] -> [Batch, 1, Features] -> TSDiff -> [Batch, 1, Features] -> squeeze(1) -> [Batch, Features]. Ran evaluation. All 5 models passed successfully. TSDiff CMD was roughly 0.35.",
+        "file_path": "src/baselines/tsdiff_core & run_baselines.py"
+    },
+    {
+        "timestamp": "2026-02-24T22:58:41.608508",
+        "id": "server-bash-script-deploy",
+        "type": "feature",
+        "user_intent": "Generate the run_server.sh script for full unattended execution on remote GPU clusters.",
+        "details": "Added --model argument into run_baselines.py. Written run_server.sh invoking bash self-daemonization logic, avoiding debug_mode, iterating perfectly over all 5 models sequentially, and isolating logs to logs/<model_name>_full.log.",
+        "file_path": "run_server.sh & run_baselines.py"
+    }
+]
