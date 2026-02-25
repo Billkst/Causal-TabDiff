@@ -25,10 +25,12 @@ class CausalForestWrapper(BaselineWrapper):
 
     def fit(self, dataloader, epochs, device, debug_mode=False):
         logger.info(f"Training Causal Forest {'(Debug)' if debug_mode else ''}...")
+        logger.info("[CausalForest] Epoch 1/1 - collecting training batches...")
         
         # Collect all batches into a single dataset
         X_list, T_list = [], []
         
+        max_batches = min(2, len(dataloader)) if debug_mode else len(dataloader)
         for i, batch in enumerate(dataloader):
             if debug_mode and i >= 2: break
             
@@ -42,18 +44,25 @@ class CausalForestWrapper(BaselineWrapper):
             
             X_list.append(xy_flat)
             T_list.append(alpha_tgt.reshape(-1))
+            batch_idx = i + 1
+            if batch_idx % 20 == 0 or batch_idx == max_batches:
+                logger.info(f"[CausalForest] Epoch 1/1 - collected batch {batch_idx}/{max_batches}")
             
         X_all = np.concatenate(X_list, axis=0)
         T_all = np.concatenate(T_list, axis=0)
+        y_train_binary = (X_all[:, -1] > 0.5).astype(float)
+        self.y_positive_rate = float(np.mean(y_train_binary))
         
         # We treat the concatenated [X, Y] features as the multidimensional outcome we want to predict or measure effect on. 
         # CausalForestDML natively supports multi-dimensional Y.
         XY_all = X_all.copy() 
         # Use a dummy W of ones since we are generating X, Y given T marginally here.
         W_all = np.ones((XY_all.shape[0], 1))
+        logger.info(f"[CausalForest] Epoch 1/1 - fitting model with N={XY_all.shape[0]}, D={XY_all.shape[1]}")
         
         self.model.fit(Y=XY_all, T=T_all, X=W_all, cache_values=True)
         self.XY_mean = np.mean(XY_all, axis=0, keepdims=True)
+        logger.info("[CausalForest] Epoch 1/1 - fit completed")
         self.fitted = True
 
     def sample(self, batch_size, alpha_target, device):
@@ -76,6 +85,18 @@ class CausalForestWrapper(BaselineWrapper):
         
         X_cf = XY_cf[:, :-1]
         Y_cf = XY_cf[:, -1:]
+        y_score = 1.0 / (1.0 + np.exp(-Y_cf.reshape(-1)))
+
+        if 0.0 < self.y_positive_rate < 1.0:
+            k_pos = int(round(self.y_positive_rate * batch_size))
+            k_pos = max(1, min(batch_size - 1, k_pos))
+            rank = np.argsort(y_score)
+            y_binary = np.zeros(batch_size, dtype=np.float32)
+            y_binary[rank[-k_pos:]] = 1.0
+            Y_cf = y_binary.reshape(-1, 1)
+        else:
+            Y_cf = (y_score > 0.5).astype(np.float32).reshape(-1, 1)
+
         # Reshape X back to [Batch, T, D]
         X_cf_reshaped = X_cf.reshape(batch_size, self.t_steps, self.feature_dim) # This has analog bits!
         
@@ -200,7 +221,12 @@ class STaSyWrapper(BaselineWrapper):
                                                  
         self.state = dict(optimizer=self.optimizer, model=self.score_model, ema=self.ema, step=0, epoch=0)
         
-        for epoch in range(epochs if not debug_mode else 5):
+        total_epochs = epochs if not debug_mode else 5
+        log_every = 20
+        for epoch in range(total_epochs):
+            epoch_loss = 0.0
+            epoch_batches = 0
+            max_batches = min(2, len(dataloader)) if debug_mode else len(dataloader)
             for i, batch in enumerate(dataloader):
                 if debug_mode and i >= 2: break
                 
@@ -217,6 +243,14 @@ class STaSyWrapper(BaselineWrapper):
                 
                 xyt_tensor = torch.tensor(xyt_flat, dtype=torch.float32, device=device)
                 loss = train_step_fn(self.state, xyt_tensor)
+                loss_value = float(loss.item()) if hasattr(loss, 'item') else float(loss)
+                epoch_loss += loss_value
+                epoch_batches += 1
+                batch_idx = i + 1
+                if batch_idx % log_every == 0 or batch_idx == max_batches:
+                    logger.info(f"[STaSy] Epoch {epoch + 1}/{total_epochs} - batch {batch_idx}/{max_batches}, loss={loss_value:.6f}")
+            avg_loss = epoch_loss / max(1, epoch_batches)
+            logger.info(f"[STaSy] Epoch {epoch + 1}/{total_epochs} - avg_loss={avg_loss:.6f}, batches={epoch_batches}")
                 
         self.fitted = True
 
@@ -311,7 +345,12 @@ class TSDiffWrapper(BaselineWrapper):
         from torch.optim import Adam
         optimizer = Adam(self.model.parameters(), lr=1e-3)
         
-        for epoch in range(epochs if not debug_mode else 5):
+        total_epochs = epochs if not debug_mode else 5
+        log_every = 20
+        for epoch in range(total_epochs):
+            epoch_loss = 0.0
+            epoch_batches = 0
+            max_batches = min(2, len(dataloader)) if debug_mode else len(dataloader)
             for i, batch in enumerate(dataloader):
                 if debug_mode and i >= 2: break
                 
@@ -330,6 +369,14 @@ class TSDiffWrapper(BaselineWrapper):
                 loss = self.model.train_step(x_combined_3d)
                 loss.backward()
                 optimizer.step()
+                loss_value = float(loss.item()) if hasattr(loss, 'item') else float(loss)
+                epoch_loss += loss_value
+                epoch_batches += 1
+                batch_idx = i + 1
+                if batch_idx % log_every == 0 or batch_idx == max_batches:
+                    logger.info(f"[TSDiff] Epoch {epoch + 1}/{total_epochs} - batch {batch_idx}/{max_batches}, loss={loss_value:.6f}")
+            avg_loss = epoch_loss / max(1, epoch_batches)
+            logger.info(f"[TSDiff] Epoch {epoch + 1}/{total_epochs} - avg_loss={avg_loss:.6f}, batches={epoch_batches}")
                 
         self.fitted = True
 
@@ -452,7 +499,11 @@ class TabSynWrapper(BaselineWrapper):
         
         vae_epochs = 50 if debug_mode else 4000
         self.vae.train()
+        vae_log_every = 20
         for ep in range(vae_epochs):
+            ep_loss_sum = 0.0
+            ep_batches = 0
+            vae_max_batches = len(dl)
             for batch_arr in dl:
                 vae_optimizer.zero_grad()
                 
@@ -476,6 +527,13 @@ class TabSynWrapper(BaselineWrapper):
                 loss = mse_loss + ce_loss + 1e-2 * loss_kld
                 loss.backward()
                 vae_optimizer.step()
+                loss_value = float(loss.item()) if hasattr(loss, 'item') else float(loss)
+                ep_loss_sum += loss_value
+                ep_batches += 1
+                if ep_batches % vae_log_every == 0 or ep_batches == vae_max_batches:
+                    logger.info(f"[TabSyn-VAE] Epoch {ep + 1}/{vae_epochs} - batch {ep_batches}/{vae_max_batches}, loss={loss_value:.6f}")
+            vae_avg_loss = ep_loss_sum / max(1, ep_batches)
+            logger.info(f"[TabSyn-VAE] Epoch {ep + 1}/{vae_epochs} - avg_loss={vae_avg_loss:.6f}, batches={ep_batches}")
                 
         self.vae.eval()
         with torch.no_grad():
@@ -497,14 +555,25 @@ class TabSynWrapper(BaselineWrapper):
         
         diff_dl = DataLoader(TensorDataset(train_z_tensor), batch_size=4096, shuffle=True)
         diff_epochs = 50 if debug_mode else 10000
+        diff_log_every = 20
         
         self.diff_model.train()
         for ep in range(diff_epochs):
+            ep_loss_sum = 0.0
+            ep_batches = 0
+            diff_max_batches = len(diff_dl)
             for (bz,) in diff_dl:
                 diff_optimizer.zero_grad()
                 loss = self.diff_model(bz)
                 loss.mean().backward()
                 diff_optimizer.step()
+                loss_value = float(loss.mean().item()) if hasattr(loss, 'mean') else float(loss)
+                ep_loss_sum += loss_value
+                ep_batches += 1
+                if ep_batches % diff_log_every == 0 or ep_batches == diff_max_batches:
+                    logger.info(f"[TabSyn-Diffusion] Epoch {ep + 1}/{diff_epochs} - batch {ep_batches}/{diff_max_batches}, loss={loss_value:.6f}")
+            diff_avg_loss = ep_loss_sum / max(1, ep_batches)
+            logger.info(f"[TabSyn-Diffusion] Epoch {ep + 1}/{diff_epochs} - avg_loss={diff_avg_loss:.6f}, batches={ep_batches}")
                 
         self.fitted = True
 
@@ -650,7 +719,12 @@ class TabDiffWrapper(BaselineWrapper):
         from torch.optim import AdamW
         optimizer = AdamW(self.model.parameters(), lr=1e-3, weight_decay=1e-5)
         
-        for epoch in range(epochs if not debug_mode else 5):
+        total_epochs = epochs if not debug_mode else 5
+        log_every = 20
+        for epoch in range(total_epochs):
+            epoch_loss = 0.0
+            epoch_batches = 0
+            max_batches = min(2, len(dataloader)) if debug_mode else len(dataloader)
             for i, batch in enumerate(dataloader):
                 if debug_mode and i >= 2: break
                 
@@ -688,6 +762,14 @@ class TabDiffWrapper(BaselineWrapper):
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
                 optimizer.step()
+                loss_value = float(loss.item()) if hasattr(loss, 'item') else float(loss)
+                epoch_loss += loss_value
+                epoch_batches += 1
+                batch_idx = i + 1
+                if batch_idx % log_every == 0 or batch_idx == max_batches:
+                    logger.info(f"[TabDiff] Epoch {epoch + 1}/{total_epochs} - batch {batch_idx}/{max_batches}, loss={loss_value:.6f}")
+            avg_loss = epoch_loss / max(1, epoch_batches)
+            logger.info(f"[TabDiff] Epoch {epoch + 1}/{total_epochs} - avg_loss={avg_loss:.6f}, batches={epoch_batches}")
                 
         self.fitted = True
 
@@ -755,6 +837,7 @@ class CausalTabDiffWrapper(BaselineWrapper):
         for epoch in range(epochs):
             num_batches = len(dataloader) if not debug_mode else min(2, len(dataloader))
             epoch_loss = 0
+            log_every = 20
             for i, batch in enumerate(dataloader):
                 if debug_mode and i >= 2: break
                 x = batch['x'].to(device)
@@ -768,6 +851,11 @@ class CausalTabDiffWrapper(BaselineWrapper):
                 loss.backward()
                 optimizer.step()
                 epoch_loss += loss.item()
+                batch_idx = i + 1
+                if batch_idx % log_every == 0 or batch_idx == num_batches:
+                    logger.info(f"[Causal-TabDiff] Epoch {epoch + 1}/{epochs} - batch {batch_idx}/{num_batches}, loss={loss.item():.6f}")
+            avg_loss = epoch_loss / max(1, num_batches)
+            logger.info(f"[Causal-TabDiff] Epoch {epoch + 1}/{epochs} - avg_loss={avg_loss:.6f}, batches={num_batches}")
 
     def sample(self, batch_size, alpha_target, device):
         self.model.eval()
