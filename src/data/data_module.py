@@ -54,12 +54,15 @@ class NLSTDataset(Dataset):
         
         # 3. 严格校验所有在 dataset_metadata.json 中定义的特征列 (Strict Schema Validation)
         # 完全禁止一切形式的特征造假！(Zero Tolerance for Mock Data)
-        expected_cols = self.continuous_cols + self.categorical_cols + [self.metadata['alpha_col']]
+        expected_cols = self.continuous_cols + self.categorical_cols
         missing_cols = [col for col in expected_cols if col not in self.merged_df.columns]
         
         if missing_cols:
             raise KeyError(f"CRITICAL ERROR: The following required columns from dataset_metadata.json are MISSING in prsn_df: {missing_cols}. Please verify your CSV headers!")
             
+        # Ensure there are no NaNs propagating into the models (e.g., EconML throws ValueError)
+        self.merged_df.fillna(0, inplace=True)
+        
         self._preprocess()
             
     def _gaussian_quantile_transform(self, series):

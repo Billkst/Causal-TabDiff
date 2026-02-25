@@ -13,33 +13,14 @@ def generate_metadata():
     base_dir = os.path.abspath(os.path.join(data_dir, '..', '..', 'data'))
     
     prsn_path = os.path.join(base_dir, 'nlst.780.idc.delivery.052821', 'nlst_780_prsn_idc_20210527.csv')
-    canc_path = os.path.join(base_dir, 'nlst.780.idc.delivery.052821', 'nlst_780_canc_idc_20210527.csv')
-    screen_path = os.path.join(base_dir, 'nlst.780.idc.delivery.052821', 'nlst_780_screen_idc_20210527.csv')
     
-    try:
-        prsn_df = pd.read_csv(prsn_path)
-        canc_df = pd.read_csv(canc_path)
+    # 彻底禁止一切 Mock Data 生成与 Try-Catch，直接读取原生唯一宽表
+    merged_df = pd.read_csv(prsn_path)
+    
+    if 'cancyr' not in merged_df.columns:
+        raise KeyError("CRITICAL ERROR: 'cancyr' not found in prsn_df during metadata generation!")
         
-        # We simply need a unified schema. Let's merge PRSN and CANC
-        merged_df = pd.merge(prsn_df, canc_df[['pid', 'cancyr']], on='pid', how='left')
-        merged_df['cancyr'] = merged_df['cancyr'].fillna(0).astype(int)
-        
-        # Add basic dummy age if missing
-        if 'age' not in merged_df.columns:
-            merged_df['age'] = np.random.randint(50, 80, size=len(merged_df))
-            
-    except Exception as e:
-        print(f"Real data not found: {e}. Generating comprehensive mock data.")
-        size = 1000
-        merged_df = pd.DataFrame({
-            'pid': range(size),
-            'age': np.random.normal(60, 5, size),
-            'bmi': np.random.normal(25, 3, size),
-            'gender': np.random.choice([1, 2], size),
-            'smoke_hist': np.random.choice([0, 1, 2, 3], size),
-            'screen_group': np.random.choice([1, 2], size),
-            'cancyr': np.random.choice([0, 1], size, p=[0.9, 0.1])
-        })
+    merged_df['cancyr'] = merged_df['cancyr'].fillna(0).astype(int)
 
     y_col = 'cancyr'
     
@@ -47,9 +28,12 @@ def generate_metadata():
     continuous_cols = []
     categorical_cols = []
     
+    # Note: excluding raw IDs, unstructured strings or post-treatment outcomes that leak the target prediction
+    exclude_cols = ['pid', 'dataset_version', 'candx_days', 'canc_free_days', 'canc_rpt_link', 'de_stag_7thed', 'de_stag', 'de_grade', 'de_type', y_col]
+    
     for col in merged_df.columns:
-        if col in ['pid', y_col]: 
-            continue # Exclude ID and Label from X features
+        if col in exclude_cols: 
+            continue
             
         unique_vals = merged_df[col].dropna().unique()
         num_unique = len(unique_vals)
@@ -89,7 +73,7 @@ def generate_metadata():
         })
         
     for col in merged_df.columns:
-        if col in ['pid', y_col]: continue
+        if col in exclude_cols: continue
         if col in continuous_cols:
             meta['columns'].append({'name': col, 'type': 'continuous', 'dim': 1})
         else:
