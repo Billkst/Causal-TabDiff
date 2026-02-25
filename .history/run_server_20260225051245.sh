@@ -60,25 +60,12 @@ for MODEL in "${MODELS[@]}"; do
     fi
     MODEL_PID=$!
     while kill -0 "$MODEL_PID" 2>/dev/null; do
-        NOW_TS=$(date +%s)
-        if [ -f "$LOG_FILE" ]; then
-            LOG_MTIME=$(stat -c %Y "$LOG_FILE" 2>/dev/null || echo "$NOW_TS")
-            STALE_SEC=$((NOW_TS - LOG_MTIME))
-        else
-            STALE_SEC=-1
-        fi
-        PROC_STAT=$(ps -p "$MODEL_PID" -o %cpu,%mem,etime --no-headers 2>/dev/null | xargs)
-        echo "⏱ [$MODEL] 仍在运行... $(date '+%Y-%m-%d %H:%M:%S') | pid=$MODEL_PID | cpu/mem/etime=${PROC_STAT:-N/A} | log_stale=${STALE_SEC}s"
-        if [ "$STALE_SEC" -ge 300 ] 2>/dev/null; then
-            echo "⚠️ [$MODEL] 超过 300s 无新日志，可能在底层库长时间计算（如 forest fit），请继续观察。"
-        fi
+        echo "⏱ [$MODEL] 仍在运行... $(date '+%Y-%m-%d %H:%M:%S')"
         sleep 60
     done
     wait "$MODEL_PID"
     EXIT_CODE=$?
     echo "🧾 [$MODEL] 退出码: $EXIT_CODE"
-    echo "📌 [$MODEL] 最近日志摘要(最后5行):"
-    tail -n 5 "$LOG_FILE" 2>/dev/null || true
     if [ $EXIT_CODE -ne 0 ]; then
         echo "❌ [$MODEL] 执行失败，已中断后续模型。"
         exit $EXIT_CODE

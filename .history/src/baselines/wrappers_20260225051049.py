@@ -50,8 +50,6 @@ class CausalForestWrapper(BaselineWrapper):
             
         X_all = np.concatenate(X_list, axis=0)
         T_all = np.concatenate(T_list, axis=0)
-        y_train_binary = (X_all[:, -1] > 0.5).astype(float)
-        self.y_positive_rate = float(np.mean(y_train_binary))
         
         # We treat the concatenated [X, Y] features as the multidimensional outcome we want to predict or measure effect on. 
         # CausalForestDML natively supports multi-dimensional Y.
@@ -85,18 +83,6 @@ class CausalForestWrapper(BaselineWrapper):
         
         X_cf = XY_cf[:, :-1]
         Y_cf = XY_cf[:, -1:]
-        y_score = 1.0 / (1.0 + np.exp(-Y_cf.reshape(-1)))
-
-        if 0.0 < self.y_positive_rate < 1.0:
-            k_pos = int(round(self.y_positive_rate * batch_size))
-            k_pos = max(1, min(batch_size - 1, k_pos))
-            rank = np.argsort(y_score)
-            y_binary = np.zeros(batch_size, dtype=np.float32)
-            y_binary[rank[-k_pos:]] = 1.0
-            Y_cf = y_binary.reshape(-1, 1)
-        else:
-            Y_cf = (y_score > 0.5).astype(np.float32).reshape(-1, 1)
-
         # Reshape X back to [Batch, T, D]
         X_cf_reshaped = X_cf.reshape(batch_size, self.t_steps, self.feature_dim) # This has analog bits!
         

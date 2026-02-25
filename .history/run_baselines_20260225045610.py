@@ -4,7 +4,6 @@ import numpy as np
 import torch
 import logging
 import os
-import time
 from collections import defaultdict
 from tabulate import tabulate
 
@@ -21,16 +20,14 @@ from src.baselines import (
 # Ensure log directory exists
 os.makedirs('logs/evaluation', exist_ok=True)
 BASELINE_LOG_FILE = os.environ.get('BASELINE_LOG_FILE', 'logs/evaluation/baselines.log')
-BASELINE_DISABLE_STREAM = os.environ.get('BASELINE_DISABLE_STREAM', '0') == '1'
-
-_handlers = [logging.FileHandler(BASELINE_LOG_FILE, mode='w', encoding='utf-8')]
-if not BASELINE_DISABLE_STREAM:
-    _handlers.append(logging.StreamHandler())
 
 logging.basicConfig(
     level=logging.INFO, 
     format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=_handlers,
+    handlers=[
+        logging.FileHandler(BASELINE_LOG_FILE, encoding='utf-8'),
+        logging.StreamHandler()
+    ],
     force=True
 )
 logger = logging.getLogger(__name__)
@@ -66,46 +63,30 @@ def compute_metrics(real_x, fake_x, real_y, fake_y, alpha_tgt):
     Computes Distributional Fidelity (Wasserstein & CMD), Causal Bias (ATE Bias via EconML),
     and Efficacy (TSTR: AUC and F1 predicting Y from X).
     """
-    t0 = time.time()
     real_x_flat = real_x.reshape(real_x.shape[0], -1).cpu().numpy()
     fake_x_flat = np.nan_to_num(fake_x.reshape(fake_x.shape[0], -1).cpu().numpy(), nan=0.0, posinf=1.0, neginf=-1.0)
     
     real_y_flat = real_y.cpu().numpy().reshape(-1)
     fake_y_flat = np.nan_to_num(fake_y.cpu().numpy().reshape(-1), nan=0.0, posinf=1.0, neginf=0.0)
-    logger.info(f"[Metrics] input shapes real_x={real_x_flat.shape}, fake_x={fake_x_flat.shape}, real_y={real_y_flat.shape}, fake_y={fake_y_flat.shape}")
+    print(f"DEBUG SHAPE - real_x: {real_x_flat.shape}, fake_x: {fake_x_flat.shape}")
     t = alpha_tgt.cpu().numpy().reshape(-1)
     t = (t > 0.5).astype(int) # Binarize treatment as requested
-    logger.info(f"[Metrics] preprocess done in {time.time() - t0:.2f}s")
     
     # 1. Distributional Fidelity
-    t_w = time.time()
     w_dists = []
     for dim in range(real_x_flat.shape[1]):
         w_dists.append(wasserstein_distance(real_x_flat[:, dim], fake_x_flat[:, dim]))
     wasserstein = np.mean(w_dists)
     
     cmd = cmd_dist(real_x_flat, fake_x_flat)
-    logger.info(f"[Metrics] fidelity (Wasserstein+CMD) done in {time.time() - t_w:.2f}s")
     
     # 2. ATE Bias (LinearDML proxy via EconML)
-    real_y_bounds = (real_y_flat > 0.5).astype(float)
-    fake_y_bounds = (fake_y_flat > 0.5).astype(float)
-
-    # Collapse-guard: if fake_y collapses to a single class while real_y has both classes,
-    # preserve rank information and match real prevalence to avoid degenerate downstream metrics.
-    if len(np.unique(fake_y_bounds)) < 2 and len(np.unique(real_y_bounds)) == 2:
-        real_pos_rate = float(np.mean(real_y_bounds))
-        k_pos = int(round(real_pos_rate * len(fake_y_bounds)))
-        k_pos = max(1, min(len(fake_y_bounds) - 1, k_pos))
-        order = np.argsort(fake_y_flat)
-        calibrated = np.zeros_like(fake_y_bounds)
-        calibrated[order[-k_pos:]] = 1.0
-        fake_y_bounds = calibrated
-        logger.warning(f"[Metrics] fake_y collapsed to one class; applied rank-based prevalence calibration with k_pos={k_pos}/{len(fake_y_bounds)}")
-
-    t_ate = time.time()
     try:
         from sklearn.linear_model import LogisticRegression
+        # User explicitly requested we bound logical values. Ensure Y is constrained to [0, 1] bounds.
+        # But we must binarize the generator's Y *before* computing ATE to respect probability diffs.
+        fake_y_bounds = (fake_y_flat > 0.5).astype(float)
+        real_y_bounds = (real_y_flat > 0.5).astype(float)
 
         # Reverting to Ridge() as LinearDML natively expects continuous float vectors for Y
         model_real = LinearDML(model_y=Ridge(), model_t=LogisticRegression(max_iter=1000), discrete_treatment=True, random_state=42)
@@ -124,17 +105,10 @@ def compute_metrics(real_x, fake_x, real_y, fake_y, alpha_tgt):
     except Exception as e:
         logger.error(f"EconML ATE Error: {e}")
         ate_bias = 2.0
-    logger.info(f"[Metrics] ATE done in {time.time() - t_ate:.2f}s")
     
     # 3. TSTR Efficacy (Binary Classification)
-    t_tstr = time.time()
-    fake_y_class = fake_y_bounds.astype(int)
-    real_y_class = real_y_bounds.astype(int)
-    fake_pos = int(np.sum(fake_y_class == 1))
-    fake_neg = int(np.sum(fake_y_class == 0))
-    real_pos = int(np.sum(real_y_class == 1))
-    real_neg = int(np.sum(real_y_class == 0))
-    logger.info(f"[Metrics] label dist fake(y=1:{fake_pos}, y=0:{fake_neg}) real(y=1:{real_pos}, y=0:{real_neg})")
+    fake_y_class = (fake_y_flat > 0.5).astype(int)
+    real_y_class = (real_y_flat > 0.5).astype(int)
     if len(np.unique(fake_y_class)) < 2 or len(np.unique(real_y_class)) < 2:
         logger.warning("fake_y or real_y lacks both classes. Using baseline AUC=0.5, F1=0.0")
         tstr_auc = 0.5
@@ -151,8 +125,6 @@ def compute_metrics(real_x, fake_x, real_y, fake_y, alpha_tgt):
             logger.error(f"TSTR Error: {e}")
             tstr_auc = float('nan')
             tstr_f1 = float('nan')
-    logger.info(f"[Metrics] TSTR done in {time.time() - t_tstr:.2f}s")
-    logger.info(f"[Metrics] total compute_metrics time {time.time() - t0:.2f}s")
         
     return {"ATE_Bias": ate_bias, "Wasserstein": wasserstein, "CMD": cmd, "TSTR_AUC": tstr_auc, "TSTR_F1": tstr_f1}
 

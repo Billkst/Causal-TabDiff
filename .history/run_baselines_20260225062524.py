@@ -88,24 +88,13 @@ def compute_metrics(real_x, fake_x, real_y, fake_y, alpha_tgt):
     logger.info(f"[Metrics] fidelity (Wasserstein+CMD) done in {time.time() - t_w:.2f}s")
     
     # 2. ATE Bias (LinearDML proxy via EconML)
-    real_y_bounds = (real_y_flat > 0.5).astype(float)
-    fake_y_bounds = (fake_y_flat > 0.5).astype(float)
-
-    # Collapse-guard: if fake_y collapses to a single class while real_y has both classes,
-    # preserve rank information and match real prevalence to avoid degenerate downstream metrics.
-    if len(np.unique(fake_y_bounds)) < 2 and len(np.unique(real_y_bounds)) == 2:
-        real_pos_rate = float(np.mean(real_y_bounds))
-        k_pos = int(round(real_pos_rate * len(fake_y_bounds)))
-        k_pos = max(1, min(len(fake_y_bounds) - 1, k_pos))
-        order = np.argsort(fake_y_flat)
-        calibrated = np.zeros_like(fake_y_bounds)
-        calibrated[order[-k_pos:]] = 1.0
-        fake_y_bounds = calibrated
-        logger.warning(f"[Metrics] fake_y collapsed to one class; applied rank-based prevalence calibration with k_pos={k_pos}/{len(fake_y_bounds)}")
-
     t_ate = time.time()
     try:
         from sklearn.linear_model import LogisticRegression
+        # User explicitly requested we bound logical values. Ensure Y is constrained to [0, 1] bounds.
+        # But we must binarize the generator's Y *before* computing ATE to respect probability diffs.
+        fake_y_bounds = (fake_y_flat > 0.5).astype(float)
+        real_y_bounds = (real_y_flat > 0.5).astype(float)
 
         # Reverting to Ridge() as LinearDML natively expects continuous float vectors for Y
         model_real = LinearDML(model_y=Ridge(), model_t=LogisticRegression(max_iter=1000), discrete_treatment=True, random_state=42)
@@ -128,8 +117,8 @@ def compute_metrics(real_x, fake_x, real_y, fake_y, alpha_tgt):
     
     # 3. TSTR Efficacy (Binary Classification)
     t_tstr = time.time()
-    fake_y_class = fake_y_bounds.astype(int)
-    real_y_class = real_y_bounds.astype(int)
+    fake_y_class = (fake_y_flat > 0.5).astype(int)
+    real_y_class = (real_y_flat > 0.5).astype(int)
     fake_pos = int(np.sum(fake_y_class == 1))
     fake_neg = int(np.sum(fake_y_class == 0))
     real_pos = int(np.sum(real_y_class == 1))
