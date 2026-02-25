@@ -1,0 +1,113 @@
+﻿conda.exe : 2026-02-25 11:52
+:51,255 - INFO - Starting Ev
+aluation on device: cpu
+所在位置 D:\anaconda3\shell\cond
+abin\Conda.psm1:153 字符: 17
++ ...             & $Env:CON
+DA_EXE $Env:_CE_M $Env:_CE_C
+ONDA $Command @Othe ...
++                 ~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          
+    : NotSpecified: (2026-  
+  02-25 11:5... on device   
+ : cpu:String) [], Remot    
+eException
+    + FullyQualifiedErrorId 
+    : NativeCommandError
+ 
+2026-02-25 11:52:51,381 - IN
+FO - Filtered execution to s
+ingle model: CausalForest (C
+lassic)
+2026-02-25 11:52:51,381 - IN
+FO - === Running evaluation 
+for SEED: 42 ===
+2026-02-25 11:52:51,384 - IN
+FO - Evaluating CausalForest
+ (Classic)...
+2026-02-25 11:52:51,385 - IN
+FO - Training Causal Forest 
+(Debug)...
+Traceback (most recent call 
+last):
+  File "D:\CodeRepository\UE
+STC\project_2\run_baselines.
+py", line 313, in <module>
+    main()
+  File "D:\CodeRepository\UE
+STC\project_2\run_baselines.
+py", line 198, in main
+    wrapper.fit(dataloader, 
+epochs=epochs, device=device
+, debug_mode=args.debug_mode
+)
+  File "D:\CodeRepository\UE
+STC\project_2\src\baselines\
+wrappers.py", line 55, in fi
+t
+    self.model.fit(Y=XY_all,
+ T=T_all, X=W_all, cache_val
+ues=True)
+  File "D:\anaconda3\envs\ca
+usal_tabdiff\lib\site-packag
+es\econml\dml\causal_forest.
+py", line 964, in fit
+    return super().fit(Y, T,
+ X=X, W=W,
+  File "D:\anaconda3\envs\ca
+usal_tabdiff\lib\site-packag
+es\econml\dml\_rlearner.py",
+ line 501, in fit
+    return super().fit(Y, T,
+ X=X, W=W,
+  File "D:\anaconda3\envs\ca
+usal_tabdiff\lib\site-packag
+es\econml\_cate_estimator.py
+", line 134, in call
+    m(self, Y, T, *args, **k
+wargs)
+  File "D:\anaconda3\envs\ca
+usal_tabdiff\lib\site-packag
+es\econml\_ortho_learner.py"
+, line 744, in fit
+    Y, T, Z, sample_weight, 
+freq_weight, sample_var, gro
+ups = check_input_arrays(
+  File "D:\anaconda3\envs\ca
+usal_tabdiff\lib\site-packag
+es\econml\utilities.py", lin
+e 582, in check_input_arrays
+    new_arg = check_array(ar
+g, dtype=dtype, ensure_2d=Fa
+lse, accept_sparse=True,
+  File "D:\anaconda3\envs\ca
+usal_tabdiff\lib\site-packag
+es\sklearn\utils\validation.
+py", line 1107, in check_arr
+ay
+    _assert_all_finite(
+  File "D:\anaconda3\envs\ca
+usal_tabdiff\lib\site-packag
+es\sklearn\utils\validation.
+py", line 120, in _assert_al
+l_finite
+    _assert_all_finite_eleme
+nt_wise(
+  File "D:\anaconda3\envs\ca
+usal_tabdiff\lib\site-packag
+es\sklearn\utils\validation.
+py", line 169, in _assert_al
+l_finite_element_wise
+    raise ValueError(msg_err
+)
+ValueError: Input contains N
+aN.
+
+ERROR conda.cli.main_run:exe
+cute(125): `conda run python
+ -u run_baselines.py --model
+ CausalForest (Classic) --de
+bug_mode` failed. (See above
+ for error)

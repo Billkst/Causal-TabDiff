@@ -1,13 +1,13 @@
 {
     "columns": [
         {
-            "name": "age",
-            "type": "continuous",
-            "dim": 1
+            "name": "race",
+            "type": "categorical",
+            "dim": 4
         },
         {
-            "name": "bmi",
-            "type": "continuous",
+            "name": "cigsmok",
+            "type": "categorical",
             "dim": 1
         },
         {
@@ -16,13 +16,133 @@
             "dim": 1
         },
         {
-            "name": "smoke_hist",
-            "type": "categorical",
-            "dim": 2
+            "name": "age",
+            "type": "continuous",
+            "dim": 1
         },
         {
-            "name": "screen_group",
+            "name": "loclhil",
             "type": "categorical",
+            "dim": 1
+        },
+        {
+            "name": "locllow",
+            "type": "categorical",
+            "dim": 1
+        },
+        {
+            "name": "loclup",
+            "type": "categorical",
+            "dim": 1
+        },
+        {
+            "name": "locrhil",
+            "type": "categorical",
+            "dim": 1
+        },
+        {
+            "name": "locrlow",
+            "type": "categorical",
+            "dim": 1
+        },
+        {
+            "name": "locrmid",
+            "type": "categorical",
+            "dim": 1
+        },
+        {
+            "name": "locunk",
+            "type": "categorical",
+            "dim": 1
+        },
+        {
+            "name": "locrup",
+            "type": "categorical",
+            "dim": 1
+        },
+        {
+            "name": "locoth",
+            "type": "categorical",
+            "dim": 1
+        },
+        {
+            "name": "locmed",
+            "type": "categorical",
+            "dim": 1
+        },
+        {
+            "name": "loclmsb",
+            "type": "categorical",
+            "dim": 1
+        },
+        {
+            "name": "locrmsb",
+            "type": "categorical",
+            "dim": 1
+        },
+        {
+            "name": "loccar",
+            "type": "categorical",
+            "dim": 1
+        },
+        {
+            "name": "loclin",
+            "type": "categorical",
+            "dim": 1
+        },
+        {
+            "name": "lesionsize",
+            "type": "continuous",
+            "dim": 1
+        },
+        {
+            "name": "scr_res0",
+            "type": "categorical",
+            "dim": 4
+        },
+        {
+            "name": "scr_res1",
+            "type": "continuous",
+            "dim": 1
+        },
+        {
+            "name": "scr_res2",
+            "type": "categorical",
+            "dim": 4
+        },
+        {
+            "name": "scr_iso0",
+            "type": "categorical",
+            "dim": 4
+        },
+        {
+            "name": "scr_iso1",
+            "type": "categorical",
+            "dim": 4
+        },
+        {
+            "name": "scr_iso2",
+            "type": "categorical",
+            "dim": 4
+        },
+        {
+            "name": "can_scr",
+            "type": "categorical",
+            "dim": 3
+        },
+        {
+            "name": "scr_days0",
+            "type": "continuous",
+            "dim": 1
+        },
+        {
+            "name": "scr_days1",
+            "type": "continuous",
+            "dim": 1
+        },
+        {
+            "name": "scr_days2",
+            "type": "continuous",
             "dim": 1
         }
     ],
@@ -32,11 +152,71 @@
             "dim": 1
         },
         {
-            "name": "bmi",
+            "name": "lesionsize",
+            "dim": 1
+        },
+        {
+            "name": "scr_res1",
+            "dim": 1
+        },
+        {
+            "name": "scr_days0",
+            "dim": 1
+        },
+        {
+            "name": "scr_days1",
+            "dim": 1
+        },
+        {
+            "name": "scr_days2",
             "dim": 1
         }
     ],
     "categorical": [
+        {
+            "name": "race",
+            "classes": 11,
+            "analog_bits": 4,
+            "val_to_idx": {
+                "1": 0,
+                "2": 1,
+                "3": 2,
+                "4": 3,
+                "5": 4,
+                "6": 5,
+                "7": 6,
+                "95": 7,
+                "96": 8,
+                "98": 9,
+                "99": 10
+            },
+            "idx_to_val": {
+                "0": 1,
+                "1": 2,
+                "2": 3,
+                "3": 4,
+                "4": 5,
+                "5": 6,
+                "6": 7,
+                "7": 95,
+                "8": 96,
+                "9": 98,
+                "10": 99
+            }
+        },
+        {
+            "name": "cigsmok",
+            "classes": 2,
+            "analog_bits": 1,
+            "val_to_idx": {
+                "0": 0,
+                "1": 1
+            },
+            "idx_to_val": {
+                "0": 0,
+                "1": 1
+            }
+        },
         {
             "name": "gender",
             "classes": 2,
@@ -51,39 +231,393 @@
             }
         },
         {
-            "name": "smoke_hist",
-            "classes": 4,
-            "analog_bits": 2,
-            "val_to_idx": {
-                "0": 0,
-                "1": 1,
-                "2": 2,
-                "3": 3
-            },
-            "idx_to_val": {
-                "0": 0,
-                "1": 1,
-                "2": 2,
-                "3": 3
-            }
-        },
-        {
-            "name": "screen_group",
+            "name": "loclhil",
             "classes": 2,
             "analog_bits": 1,
             "val_to_idx": {
+                "0": 0,
+                "1": 1
+            },
+            "idx_to_val": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        {
+            "name": "locllow",
+            "classes": 2,
+            "analog_bits": 1,
+            "val_to_idx": {
+                "0": 0,
+                "1": 1
+            },
+            "idx_to_val": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        {
+            "name": "loclup",
+            "classes": 2,
+            "analog_bits": 1,
+            "val_to_idx": {
+                "0": 0,
+                "1": 1
+            },
+            "idx_to_val": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        {
+            "name": "locrhil",
+            "classes": 2,
+            "analog_bits": 1,
+            "val_to_idx": {
+                "0": 0,
+                "1": 1
+            },
+            "idx_to_val": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        {
+            "name": "locrlow",
+            "classes": 2,
+            "analog_bits": 1,
+            "val_to_idx": {
+                "0": 0,
+                "1": 1
+            },
+            "idx_to_val": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        {
+            "name": "locrmid",
+            "classes": 2,
+            "analog_bits": 1,
+            "val_to_idx": {
+                "0": 0,
+                "1": 1
+            },
+            "idx_to_val": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        {
+            "name": "locunk",
+            "classes": 2,
+            "analog_bits": 1,
+            "val_to_idx": {
+                "0": 0,
+                "1": 1
+            },
+            "idx_to_val": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        {
+            "name": "locrup",
+            "classes": 2,
+            "analog_bits": 1,
+            "val_to_idx": {
+                "0": 0,
+                "1": 1
+            },
+            "idx_to_val": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        {
+            "name": "locoth",
+            "classes": 2,
+            "analog_bits": 1,
+            "val_to_idx": {
+                "0": 0,
+                "1": 1
+            },
+            "idx_to_val": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        {
+            "name": "locmed",
+            "classes": 2,
+            "analog_bits": 1,
+            "val_to_idx": {
+                "0": 0,
+                "1": 1
+            },
+            "idx_to_val": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        {
+            "name": "loclmsb",
+            "classes": 2,
+            "analog_bits": 1,
+            "val_to_idx": {
+                "0": 0,
+                "1": 1
+            },
+            "idx_to_val": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        {
+            "name": "locrmsb",
+            "classes": 2,
+            "analog_bits": 1,
+            "val_to_idx": {
+                "0": 0,
+                "1": 1
+            },
+            "idx_to_val": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        {
+            "name": "loccar",
+            "classes": 2,
+            "analog_bits": 1,
+            "val_to_idx": {
+                "0": 0,
+                "1": 1
+            },
+            "idx_to_val": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        {
+            "name": "loclin",
+            "classes": 2,
+            "analog_bits": 1,
+            "val_to_idx": {
+                "0": 0,
+                "1": 1
+            },
+            "idx_to_val": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        {
+            "name": "scr_res0",
+            "classes": 13,
+            "analog_bits": 4,
+            "val_to_idx": {
                 "1": 0,
-                "2": 1
+                "2": 1,
+                "3": 2,
+                "4": 3,
+                "10": 4,
+                "11": 5,
+                "13": 6,
+                "15": 7,
+                "17": 8,
+                "23": 9,
+                "24": 10,
+                "95": 11,
+                "97": 12
             },
             "idx_to_val": {
                 "0": 1,
-                "1": 2
+                "1": 2,
+                "2": 3,
+                "3": 4,
+                "4": 10,
+                "5": 11,
+                "6": 13,
+                "7": 15,
+                "8": 17,
+                "9": 23,
+                "10": 24,
+                "11": 95,
+                "12": 97
+            }
+        },
+        {
+            "name": "scr_res2",
+            "classes": 15,
+            "analog_bits": 4,
+            "val_to_idx": {
+                "1": 0,
+                "2": 1,
+                "3": 2,
+                "5": 3,
+                "6": 4,
+                "10": 5,
+                "11": 6,
+                "13": 7,
+                "14": 8,
+                "15": 9,
+                "17": 10,
+                "23": 11,
+                "24": 12,
+                "95": 13,
+                "97": 14
+            },
+            "idx_to_val": {
+                "0": 1,
+                "1": 2,
+                "2": 3,
+                "3": 5,
+                "4": 6,
+                "5": 10,
+                "6": 11,
+                "7": 13,
+                "8": 14,
+                "9": 15,
+                "10": 17,
+                "11": 23,
+                "12": 24,
+                "13": 95,
+                "14": 97
+            }
+        },
+        {
+            "name": "scr_iso0",
+            "classes": 13,
+            "analog_bits": 4,
+            "val_to_idx": {
+                "1": 0,
+                "2": 1,
+                "3": 2,
+                "4": 3,
+                "10": 4,
+                "11": 5,
+                "13": 6,
+                "15": 7,
+                "17": 8,
+                "23": 9,
+                "24": 10,
+                "95": 11,
+                "97": 12
+            },
+            "idx_to_val": {
+                "0": 1,
+                "1": 2,
+                "2": 3,
+                "3": 4,
+                "4": 10,
+                "5": 11,
+                "6": 13,
+                "7": 15,
+                "8": 17,
+                "9": 23,
+                "10": 24,
+                "11": 95,
+                "12": 97
+            }
+        },
+        {
+            "name": "scr_iso1",
+            "classes": 14,
+            "analog_bits": 4,
+            "val_to_idx": {
+                "1": 0,
+                "2": 1,
+                "3": 2,
+                "4": 3,
+                "10": 4,
+                "11": 5,
+                "13": 6,
+                "14": 7,
+                "15": 8,
+                "17": 9,
+                "23": 10,
+                "24": 11,
+                "95": 12,
+                "97": 13
+            },
+            "idx_to_val": {
+                "0": 1,
+                "1": 2,
+                "2": 3,
+                "3": 4,
+                "4": 10,
+                "5": 11,
+                "6": 13,
+                "7": 14,
+                "8": 15,
+                "9": 17,
+                "10": 23,
+                "11": 24,
+                "12": 95,
+                "13": 97
+            }
+        },
+        {
+            "name": "scr_iso2",
+            "classes": 14,
+            "analog_bits": 4,
+            "val_to_idx": {
+                "1": 0,
+                "2": 1,
+                "3": 2,
+                "4": 3,
+                "10": 4,
+                "11": 5,
+                "13": 6,
+                "14": 7,
+                "15": 8,
+                "17": 9,
+                "23": 10,
+                "24": 11,
+                "95": 12,
+                "97": 13
+            },
+            "idx_to_val": {
+                "0": 1,
+                "1": 2,
+                "2": 3,
+                "3": 4,
+                "4": 10,
+                "5": 11,
+                "6": 13,
+                "7": 14,
+                "8": 15,
+                "9": 17,
+                "10": 23,
+                "11": 24,
+                "12": 95,
+                "13": 97
+            }
+        },
+        {
+            "name": "can_scr",
+            "classes": 5,
+            "analog_bits": 3,
+            "val_to_idx": {
+                "0": 0,
+                "1": 1,
+                "2": 2,
+                "3": 3,
+                "4": 4
+            },
+            "idx_to_val": {
+                "0": 0,
+                "1": 1,
+                "2": 2,
+                "3": 3,
+                "4": 4
             }
         }
     ],
     "y_col": {
         "name": "cancyr",
-        "classes": 2,
+        "classes": 8,
         "analog_bits": 0
     }
 }

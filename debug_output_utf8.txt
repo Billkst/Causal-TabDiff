@@ -1,0 +1,68 @@
+﻿conda.exe : 2026-02-25 11:43
+:50,097 - INFO - Starting Ev
+aluation on device: cpu
+所在位置 D:\anaconda3\shell\cond
+abin\Conda.psm1:153 字符: 17
++ ...             & $Env:CON
+DA_EXE $Env:_CE_M $Env:_CE_C
+ONDA $Command @Othe ...
++                 ~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          
+    : NotSpecified: (2026-  
+  02-25 11:4... on device   
+ : cpu:String) [], Remot    
+eException
+    + FullyQualifiedErrorId 
+    : NativeCommandError
+ 
+Traceback (most recent call 
+last):
+  File "D:\CodeRepository\UE
+STC\project_2\run_baselines.
+py", line 313, in <module>
+    main()
+  File "D:\CodeRepository\UE
+STC\project_2\run_baselines.
+py", line 161, in main
+    dataloader = get_dataloa
+der(data_dir=args.data_dir, 
+batch_size=64 if not args.de
+bug_mode else 4, debug_mode=
+args.debug_mode)
+  File "D:\CodeRepository\UE
+STC\project_2\src\data\data_
+module.py", line 156, in get
+_dataloader
+    dataset = NLSTDataset(da
+ta_dir, debug_mode)
+  File "D:\CodeRepository\UE
+STC\project_2\src\data\data_
+module.py", line 17, in __in
+it__
+    self._load_data()
+  File "D:\CodeRepository\UE
+STC\project_2\src\data\data_
+module.py", line 61, in _loa
+d_data
+    raise KeyError(f"CRITICA
+L ERROR: The following requi
+red columns from dataset_met
+adata.json are MISSING in pr
+sn_df: {missing_cols}. Pleas
+e verify your CSV headers!")
+KeyError: "CRITICAL ERROR: T
+he following required column
+s from dataset_metadata.json
+ are MISSING in prsn_df: ['b
+mi', 'smoke_hist', 'screen_g
+roup']. Please verify your C
+SV headers!"
+
+ERROR conda.cli.main_run:exe
+cute(125): `conda run python
+ -u run_baselines.py --model
+ CausalForest (Classic) --de
+bug_mode` failed. (See above
+ for error)
