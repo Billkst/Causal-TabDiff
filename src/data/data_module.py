@@ -40,35 +40,27 @@ class NLSTDataset(Dataset):
         
         nrows = 100 if self.debug_mode else None
         
-        try:
-            self.prsn_df = pd.read_csv(prsn_path, nrows=nrows)
-            self.screen_df = pd.read_csv(screen_path, nrows=nrows)
-            self.ctab_df = pd.read_csv(ctab_path, nrows=nrows)
-            self.canc_df = pd.read_csv(canc_path, nrows=nrows)
-            
-            self.merged_df = pd.merge(self.prsn_df, self.canc_df[['pid', self.y_col]], on='pid', how='left')
+        self.prsn_df = pd.read_csv(prsn_path, nrows=nrows)
+        
+        # CORE FIX: 'cancyr' (Y) and all core features (X) are natively inside 'prsn_df'.
+        # We do NOT merge with canc_df or screen_df to avoid KeyErrors or data corruption.
+        self.merged_df = self.prsn_df.copy()
+        
+        # Ensure the outcome variable is strictly integer and handles any missing values
+        if self.y_col in self.merged_df.columns:
             self.merged_df[self.y_col] = self.merged_df[self.y_col].fillna(0).astype(int)
+        else:
+            raise KeyError(f"CRITICAL ERROR: The outcome variable '{self.y_col}' was not found in the primary prsn_df dataset!")
+        
+        # 3. 严格校验所有在 dataset_metadata.json 中定义的特征列 (Strict Schema Validation)
+        # 完全禁止一切形式的特征造假！(Zero Tolerance for Mock Data)
+        expected_cols = self.continuous_cols + self.categorical_cols + [self.metadata['alpha_col']]
+        missing_cols = [col for col in expected_cols if col not in self.merged_df.columns]
+        
+        if missing_cols:
+            raise KeyError(f"CRITICAL ERROR: The following required columns from dataset_metadata.json are MISSING in prsn_df: {missing_cols}. Please verify your CSV headers!")
             
-            if 'age' not in self.merged_df.columns:
-                 self.merged_df['age'] = np.random.randint(50, 80, size=len(self.merged_df))
-                 
-            self._preprocess()
-        except Exception as e:
-            print(f"Error loading datasets: {e}. Generating mock data for debug.")
-            size = 32 if self.debug_mode else 1000
-            y_mock = np.array([0]*(size//2) + [1]*(size - size//2))
-            np.random.shuffle(y_mock)
-            
-            self.merged_df = pd.DataFrame({
-                'pid': range(size),
-                'age': np.random.normal(60, 5, size),
-                'bmi': np.random.normal(25, 3, size),
-                'gender': np.random.choice([1, 2], size),
-                'smoke_hist': np.random.choice([0, 1, 2, 3], size),
-                'screen_group': np.random.choice([1, 2], size),
-                self.y_col: y_mock
-            })
-            self._preprocess()
+        self._preprocess()
             
     def _gaussian_quantile_transform(self, series):
         """Eq 25: \tilde{x}_{num} = \Phi^{-1}(F_{emp}(x_{num}))"""

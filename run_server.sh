@@ -45,7 +45,7 @@ for MODEL in "${MODELS[@]}"; do
     
     # 5. 模型级自动化排队执行串行 (Sequential Automated Dispatch)
     # 利用我们在 run_baselines.py 刚才新增的 --model 单点驱动参数独立切片运行
-    conda run -n causal_tabdiff python run_baselines.py --model "$MODEL" > "$LOG_FILE" 2>&1
+    conda run -n causal_tabdiff python -u run_baselines.py --model "$MODEL" > "$LOG_FILE" 2>&1
     
     # 由于整个 bash 已经在外层的 nohup 中脱机运行，所以这里直接串行执行即可，无需额外的后台标记和 wait
     
