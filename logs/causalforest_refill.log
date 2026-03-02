@@ -1,0 +1,299 @@
+2026-02-26 07:52:59,479 - INFO - Starting Evaluation on device: cuda
+2026-02-26 07:53:50,872 - INFO - Filtered execution to single model: CausalForest (Classic)
+2026-02-26 07:53:50,872 - INFO - === Running evaluation for SEED: 42 ===
+2026-02-26 07:53:50,873 - INFO - Evaluating CausalForest (Classic)...
+2026-02-26 07:53:50,874 - INFO - Training Causal Forest ...
+2026-02-26 07:53:50,874 - INFO - [CausalForest] Epoch 1/1 - collecting training batches...
+2026-02-26 07:53:50,930 - INFO - [CausalForest] Epoch 1/1 - collected batch 20/836
+2026-02-26 07:53:50,975 - INFO - [CausalForest] Epoch 1/1 - collected batch 40/836
+2026-02-26 07:53:51,022 - INFO - [CausalForest] Epoch 1/1 - collected batch 60/836
+2026-02-26 07:53:51,067 - INFO - [CausalForest] Epoch 1/1 - collected batch 80/836
+2026-02-26 07:53:51,113 - INFO - [CausalForest] Epoch 1/1 - collected batch 100/836
+2026-02-26 07:53:51,158 - INFO - [CausalForest] Epoch 1/1 - collected batch 120/836
+2026-02-26 07:53:51,204 - INFO - [CausalForest] Epoch 1/1 - collected batch 140/836
+2026-02-26 07:53:51,249 - INFO - [CausalForest] Epoch 1/1 - collected batch 160/836
+2026-02-26 07:53:51,295 - INFO - [CausalForest] Epoch 1/1 - collected batch 180/836
+2026-02-26 07:53:51,340 - INFO - [CausalForest] Epoch 1/1 - collected batch 200/836
+2026-02-26 07:53:51,386 - INFO - [CausalForest] Epoch 1/1 - collected batch 220/836
+2026-02-26 07:53:51,431 - INFO - [CausalForest] Epoch 1/1 - collected batch 240/836
+2026-02-26 07:53:51,477 - INFO - [CausalForest] Epoch 1/1 - collected batch 260/836
+2026-02-26 07:53:51,522 - INFO - [CausalForest] Epoch 1/1 - collected batch 280/836
+2026-02-26 07:53:51,567 - INFO - [CausalForest] Epoch 1/1 - collected batch 300/836
+2026-02-26 07:53:51,612 - INFO - [CausalForest] Epoch 1/1 - collected batch 320/836
+2026-02-26 07:53:51,657 - INFO - [CausalForest] Epoch 1/1 - collected batch 340/836
+2026-02-26 07:53:51,702 - INFO - [CausalForest] Epoch 1/1 - collected batch 360/836
+2026-02-26 07:53:51,747 - INFO - [CausalForest] Epoch 1/1 - collected batch 380/836
+2026-02-26 07:53:51,793 - INFO - [CausalForest] Epoch 1/1 - collected batch 400/836
+2026-02-26 07:53:51,839 - INFO - [CausalForest] Epoch 1/1 - collected batch 420/836
+2026-02-26 07:53:51,887 - INFO - [CausalForest] Epoch 1/1 - collected batch 440/836
+2026-02-26 07:53:51,933 - INFO - [CausalForest] Epoch 1/1 - collected batch 460/836
+2026-02-26 07:53:51,979 - INFO - [CausalForest] Epoch 1/1 - collected batch 480/836
+2026-02-26 07:53:52,025 - INFO - [CausalForest] Epoch 1/1 - collected batch 500/836
+2026-02-26 07:53:52,071 - INFO - [CausalForest] Epoch 1/1 - collected batch 520/836
+2026-02-26 07:53:52,116 - INFO - [CausalForest] Epoch 1/1 - collected batch 540/836
+2026-02-26 07:53:52,162 - INFO - [CausalForest] Epoch 1/1 - collected batch 560/836
+2026-02-26 07:53:52,207 - INFO - [CausalForest] Epoch 1/1 - collected batch 580/836
+2026-02-26 07:53:52,253 - INFO - [CausalForest] Epoch 1/1 - collected batch 600/836
+2026-02-26 07:53:52,298 - INFO - [CausalForest] Epoch 1/1 - collected batch 620/836
+2026-02-26 07:53:52,343 - INFO - [CausalForest] Epoch 1/1 - collected batch 640/836
+2026-02-26 07:53:52,389 - INFO - [CausalForest] Epoch 1/1 - collected batch 660/836
+2026-02-26 07:53:52,435 - INFO - [CausalForest] Epoch 1/1 - collected batch 680/836
+2026-02-26 07:53:52,480 - INFO - [CausalForest] Epoch 1/1 - collected batch 700/836
+2026-02-26 07:53:52,526 - INFO - [CausalForest] Epoch 1/1 - collected batch 720/836
+2026-02-26 07:53:52,571 - INFO - [CausalForest] Epoch 1/1 - collected batch 740/836
+2026-02-26 07:53:52,617 - INFO - [CausalForest] Epoch 1/1 - collected batch 760/836
+2026-02-26 07:53:52,663 - INFO - [CausalForest] Epoch 1/1 - collected batch 780/836
+2026-02-26 07:53:52,708 - INFO - [CausalForest] Epoch 1/1 - collected batch 800/836
+2026-02-26 07:53:52,753 - INFO - [CausalForest] Epoch 1/1 - collected batch 820/836
+2026-02-26 07:53:52,793 - INFO - [CausalForest] Epoch 1/1 - collected batch 836/836
+2026-02-26 07:53:52,824 - INFO - [CausalForest] Epoch 1/1 - fitting model with N=53452, D=148
+2026-02-26 07:56:35,570 - INFO - [CausalForest] Epoch 1/1 - fit completed
+2026-02-26 07:56:35,575 - INFO - [Complexity] CausalForest (Classic) trainable params(M): N/A
+2026-02-26 07:56:35,575 - INFO - Sampling and Evaluating metrics...
+2026-02-26 08:49:02,853 - INFO - [Metrics] input shapes real_x=(53452, 29), fake_x=(53452, 29), real_y=(53452,), fake_y=(53452,)
+2026-02-26 08:49:02,854 - INFO - [Metrics] preprocess done in 0.02s
+2026-02-26 08:49:03,079 - INFO - [Metrics] fidelity (Wasserstein+CMD) done in 0.23s
+2026-02-26 08:49:11,131 - INFO - [Metrics] ATE done in 8.05s
+2026-02-26 08:49:11,132 - INFO - [Metrics] label dist fake(y=1:1671, y=0:51781) real(y=1:1568, y=0:51884)
+2026-02-26 08:49:11,546 - INFO - [Metrics] TSTR done in 0.41s
+2026-02-26 08:49:11,546 - INFO - [Metrics] total compute_metrics time 8.72s
+2026-02-26 08:49:11,547 - INFO - [Latency] CausalForest (Classic) avg infer(ms/sample): 58.786430419652675
+2026-02-26 08:49:11,547 - INFO - === Running evaluation for SEED: 1024 ===
+2026-02-26 08:49:11,548 - INFO - Evaluating CausalForest (Classic)...
+2026-02-26 08:49:11,549 - INFO - Training Causal Forest ...
+2026-02-26 08:49:11,549 - INFO - [CausalForest] Epoch 1/1 - collecting training batches...
+2026-02-26 08:49:11,618 - INFO - [CausalForest] Epoch 1/1 - collected batch 20/836
+2026-02-26 08:49:11,686 - INFO - [CausalForest] Epoch 1/1 - collected batch 40/836
+2026-02-26 08:49:11,754 - INFO - [CausalForest] Epoch 1/1 - collected batch 60/836
+2026-02-26 08:49:11,822 - INFO - [CausalForest] Epoch 1/1 - collected batch 80/836
+2026-02-26 08:49:11,890 - INFO - [CausalForest] Epoch 1/1 - collected batch 100/836
+2026-02-26 08:49:11,958 - INFO - [CausalForest] Epoch 1/1 - collected batch 120/836
+2026-02-26 08:49:12,027 - INFO - [CausalForest] Epoch 1/1 - collected batch 140/836
+2026-02-26 08:49:12,095 - INFO - [CausalForest] Epoch 1/1 - collected batch 160/836
+2026-02-26 08:49:12,163 - INFO - [CausalForest] Epoch 1/1 - collected batch 180/836
+2026-02-26 08:49:12,231 - INFO - [CausalForest] Epoch 1/1 - collected batch 200/836
+2026-02-26 08:49:12,299 - INFO - [CausalForest] Epoch 1/1 - collected batch 220/836
+2026-02-26 08:49:12,367 - INFO - [CausalForest] Epoch 1/1 - collected batch 240/836
+2026-02-26 08:49:12,435 - INFO - [CausalForest] Epoch 1/1 - collected batch 260/836
+2026-02-26 08:49:12,499 - INFO - [CausalForest] Epoch 1/1 - collected batch 280/836
+2026-02-26 08:49:12,568 - INFO - [CausalForest] Epoch 1/1 - collected batch 300/836
+2026-02-26 08:49:12,632 - INFO - [CausalForest] Epoch 1/1 - collected batch 320/836
+2026-02-26 08:49:12,679 - INFO - [CausalForest] Epoch 1/1 - collected batch 340/836
+2026-02-26 08:49:12,730 - INFO - [CausalForest] Epoch 1/1 - collected batch 360/836
+2026-02-26 08:49:12,782 - INFO - [CausalForest] Epoch 1/1 - collected batch 380/836
+2026-02-26 08:49:12,838 - INFO - [CausalForest] Epoch 1/1 - collected batch 400/836
+2026-02-26 08:49:12,890 - INFO - [CausalForest] Epoch 1/1 - collected batch 420/836
+2026-02-26 08:49:12,944 - INFO - [CausalForest] Epoch 1/1 - collected batch 440/836
+2026-02-26 08:49:12,998 - INFO - [CausalForest] Epoch 1/1 - collected batch 460/836
+2026-02-26 08:49:13,055 - INFO - [CausalForest] Epoch 1/1 - collected batch 480/836
+2026-02-26 08:49:13,106 - INFO - [CausalForest] Epoch 1/1 - collected batch 500/836
+2026-02-26 08:49:13,160 - INFO - [CausalForest] Epoch 1/1 - collected batch 520/836
+2026-02-26 08:49:13,205 - INFO - [CausalForest] Epoch 1/1 - collected batch 540/836
+2026-02-26 08:49:13,250 - INFO - [CausalForest] Epoch 1/1 - collected batch 560/836
+2026-02-26 08:49:13,296 - INFO - [CausalForest] Epoch 1/1 - collected batch 580/836
+2026-02-26 08:49:13,341 - INFO - [CausalForest] Epoch 1/1 - collected batch 600/836
+2026-02-26 08:49:13,386 - INFO - [CausalForest] Epoch 1/1 - collected batch 620/836
+2026-02-26 08:49:13,432 - INFO - [CausalForest] Epoch 1/1 - collected batch 640/836
+2026-02-26 08:49:13,477 - INFO - [CausalForest] Epoch 1/1 - collected batch 660/836
+2026-02-26 08:49:13,522 - INFO - [CausalForest] Epoch 1/1 - collected batch 680/836
+2026-02-26 08:49:13,567 - INFO - [CausalForest] Epoch 1/1 - collected batch 700/836
+2026-02-26 08:49:13,612 - INFO - [CausalForest] Epoch 1/1 - collected batch 720/836
+2026-02-26 08:49:13,657 - INFO - [CausalForest] Epoch 1/1 - collected batch 740/836
+2026-02-26 08:49:13,703 - INFO - [CausalForest] Epoch 1/1 - collected batch 760/836
+2026-02-26 08:49:13,748 - INFO - [CausalForest] Epoch 1/1 - collected batch 780/836
+2026-02-26 08:49:13,793 - INFO - [CausalForest] Epoch 1/1 - collected batch 800/836
+2026-02-26 08:49:13,838 - INFO - [CausalForest] Epoch 1/1 - collected batch 820/836
+2026-02-26 08:49:13,880 - INFO - [CausalForest] Epoch 1/1 - collected batch 836/836
+2026-02-26 08:49:13,905 - INFO - [CausalForest] Epoch 1/1 - fitting model with N=53452, D=148
+2026-02-26 08:51:50,759 - INFO - [CausalForest] Epoch 1/1 - fit completed
+2026-02-26 08:51:50,762 - INFO - [Complexity] CausalForest (Classic) trainable params(M): N/A
+2026-02-26 08:51:50,763 - INFO - Sampling and Evaluating metrics...
+2026-02-26 09:44:26,765 - INFO - [Metrics] input shapes real_x=(53452, 29), fake_x=(53452, 29), real_y=(53452,), fake_y=(53452,)
+2026-02-26 09:44:26,765 - INFO - [Metrics] preprocess done in 0.01s
+2026-02-26 09:44:26,993 - INFO - [Metrics] fidelity (Wasserstein+CMD) done in 0.23s
+2026-02-26 09:44:36,183 - INFO - [Metrics] ATE done in 9.19s
+2026-02-26 09:44:36,184 - INFO - [Metrics] label dist fake(y=1:1671, y=0:51781) real(y=1:1568, y=0:51884)
+2026-02-26 09:44:36,563 - INFO - [Metrics] TSTR done in 0.38s
+2026-02-26 09:44:36,563 - INFO - [Metrics] total compute_metrics time 9.81s
+2026-02-26 09:44:36,563 - INFO - [Latency] CausalForest (Classic) avg infer(ms/sample): 58.951292451848
+2026-02-26 09:44:36,563 - INFO - === Running evaluation for SEED: 2024 ===
+2026-02-26 09:44:36,564 - INFO - Evaluating CausalForest (Classic)...
+2026-02-26 09:44:36,564 - INFO - Training Causal Forest ...
+2026-02-26 09:44:36,565 - INFO - [CausalForest] Epoch 1/1 - collecting training batches...
+2026-02-26 09:44:36,621 - INFO - [CausalForest] Epoch 1/1 - collected batch 20/836
+2026-02-26 09:44:36,667 - INFO - [CausalForest] Epoch 1/1 - collected batch 40/836
+2026-02-26 09:44:36,713 - INFO - [CausalForest] Epoch 1/1 - collected batch 60/836
+2026-02-26 09:44:36,759 - INFO - [CausalForest] Epoch 1/1 - collected batch 80/836
+2026-02-26 09:44:36,804 - INFO - [CausalForest] Epoch 1/1 - collected batch 100/836
+2026-02-26 09:44:36,850 - INFO - [CausalForest] Epoch 1/1 - collected batch 120/836
+2026-02-26 09:44:36,895 - INFO - [CausalForest] Epoch 1/1 - collected batch 140/836
+2026-02-26 09:44:36,941 - INFO - [CausalForest] Epoch 1/1 - collected batch 160/836
+2026-02-26 09:44:36,986 - INFO - [CausalForest] Epoch 1/1 - collected batch 180/836
+2026-02-26 09:44:37,031 - INFO - [CausalForest] Epoch 1/1 - collected batch 200/836
+2026-02-26 09:44:37,077 - INFO - [CausalForest] Epoch 1/1 - collected batch 220/836
+2026-02-26 09:44:37,122 - INFO - [CausalForest] Epoch 1/1 - collected batch 240/836
+2026-02-26 09:44:37,168 - INFO - [CausalForest] Epoch 1/1 - collected batch 260/836
+2026-02-26 09:44:37,213 - INFO - [CausalForest] Epoch 1/1 - collected batch 280/836
+2026-02-26 09:44:37,259 - INFO - [CausalForest] Epoch 1/1 - collected batch 300/836
+2026-02-26 09:44:37,304 - INFO - [CausalForest] Epoch 1/1 - collected batch 320/836
+2026-02-26 09:44:37,350 - INFO - [CausalForest] Epoch 1/1 - collected batch 340/836
+2026-02-26 09:44:37,395 - INFO - [CausalForest] Epoch 1/1 - collected batch 360/836
+2026-02-26 09:44:37,441 - INFO - [CausalForest] Epoch 1/1 - collected batch 380/836
+2026-02-26 09:44:37,486 - INFO - [CausalForest] Epoch 1/1 - collected batch 400/836
+2026-02-26 09:44:37,531 - INFO - [CausalForest] Epoch 1/1 - collected batch 420/836
+2026-02-26 09:44:37,577 - INFO - [CausalForest] Epoch 1/1 - collected batch 440/836
+2026-02-26 09:44:37,622 - INFO - [CausalForest] Epoch 1/1 - collected batch 460/836
+2026-02-26 09:44:37,668 - INFO - [CausalForest] Epoch 1/1 - collected batch 480/836
+2026-02-26 09:44:37,713 - INFO - [CausalForest] Epoch 1/1 - collected batch 500/836
+2026-02-26 09:44:37,758 - INFO - [CausalForest] Epoch 1/1 - collected batch 520/836
+2026-02-26 09:44:37,804 - INFO - [CausalForest] Epoch 1/1 - collected batch 540/836
+2026-02-26 09:44:37,849 - INFO - [CausalForest] Epoch 1/1 - collected batch 560/836
+2026-02-26 09:44:37,894 - INFO - [CausalForest] Epoch 1/1 - collected batch 580/836
+2026-02-26 09:44:37,940 - INFO - [CausalForest] Epoch 1/1 - collected batch 600/836
+2026-02-26 09:44:37,985 - INFO - [CausalForest] Epoch 1/1 - collected batch 620/836
+2026-02-26 09:44:38,030 - INFO - [CausalForest] Epoch 1/1 - collected batch 640/836
+2026-02-26 09:44:38,075 - INFO - [CausalForest] Epoch 1/1 - collected batch 660/836
+2026-02-26 09:44:38,121 - INFO - [CausalForest] Epoch 1/1 - collected batch 680/836
+2026-02-26 09:44:38,166 - INFO - [CausalForest] Epoch 1/1 - collected batch 700/836
+2026-02-26 09:44:38,211 - INFO - [CausalForest] Epoch 1/1 - collected batch 720/836
+2026-02-26 09:44:38,256 - INFO - [CausalForest] Epoch 1/1 - collected batch 740/836
+2026-02-26 09:44:38,301 - INFO - [CausalForest] Epoch 1/1 - collected batch 760/836
+2026-02-26 09:44:38,347 - INFO - [CausalForest] Epoch 1/1 - collected batch 780/836
+2026-02-26 09:44:38,392 - INFO - [CausalForest] Epoch 1/1 - collected batch 800/836
+2026-02-26 09:44:38,437 - INFO - [CausalForest] Epoch 1/1 - collected batch 820/836
+2026-02-26 09:44:38,476 - INFO - [CausalForest] Epoch 1/1 - collected batch 836/836
+2026-02-26 09:44:38,491 - INFO - [CausalForest] Epoch 1/1 - fitting model with N=53452, D=148
+2026-02-26 09:47:08,307 - INFO - [CausalForest] Epoch 1/1 - fit completed
+2026-02-26 09:47:08,311 - INFO - [Complexity] CausalForest (Classic) trainable params(M): N/A
+2026-02-26 09:47:08,312 - INFO - Sampling and Evaluating metrics...
+2026-02-26 10:39:37,848 - INFO - [Metrics] input shapes real_x=(53452, 29), fake_x=(53452, 29), real_y=(53452,), fake_y=(53452,)
+2026-02-26 10:39:37,848 - INFO - [Metrics] preprocess done in 0.01s
+2026-02-26 10:39:38,069 - INFO - [Metrics] fidelity (Wasserstein+CMD) done in 0.22s
+2026-02-26 10:39:45,822 - INFO - [Metrics] ATE done in 7.75s
+2026-02-26 10:39:45,823 - INFO - [Metrics] label dist fake(y=1:1671, y=0:51781) real(y=1:1568, y=0:51884)
+2026-02-26 10:39:46,215 - INFO - [Metrics] TSTR done in 0.39s
+2026-02-26 10:39:46,216 - INFO - [Metrics] total compute_metrics time 8.38s
+2026-02-26 10:39:46,216 - INFO - [Latency] CausalForest (Classic) avg infer(ms/sample): 58.83066664053276
+2026-02-26 10:39:46,216 - INFO - === Running evaluation for SEED: 2025 ===
+2026-02-26 10:39:46,217 - INFO - Evaluating CausalForest (Classic)...
+2026-02-26 10:39:46,217 - INFO - Training Causal Forest ...
+2026-02-26 10:39:46,218 - INFO - [CausalForest] Epoch 1/1 - collecting training batches...
+2026-02-26 10:39:46,275 - INFO - [CausalForest] Epoch 1/1 - collected batch 20/836
+2026-02-26 10:39:46,321 - INFO - [CausalForest] Epoch 1/1 - collected batch 40/836
+2026-02-26 10:39:46,367 - INFO - [CausalForest] Epoch 1/1 - collected batch 60/836
+2026-02-26 10:39:46,413 - INFO - [CausalForest] Epoch 1/1 - collected batch 80/836
+2026-02-26 10:39:46,458 - INFO - [CausalForest] Epoch 1/1 - collected batch 100/836
+2026-02-26 10:39:46,504 - INFO - [CausalForest] Epoch 1/1 - collected batch 120/836
+2026-02-26 10:39:46,549 - INFO - [CausalForest] Epoch 1/1 - collected batch 140/836
+2026-02-26 10:39:46,595 - INFO - [CausalForest] Epoch 1/1 - collected batch 160/836
+2026-02-26 10:39:46,640 - INFO - [CausalForest] Epoch 1/1 - collected batch 180/836
+2026-02-26 10:39:46,685 - INFO - [CausalForest] Epoch 1/1 - collected batch 200/836
+2026-02-26 10:39:46,731 - INFO - [CausalForest] Epoch 1/1 - collected batch 220/836
+2026-02-26 10:39:46,776 - INFO - [CausalForest] Epoch 1/1 - collected batch 240/836
+2026-02-26 10:39:46,822 - INFO - [CausalForest] Epoch 1/1 - collected batch 260/836
+2026-02-26 10:39:46,867 - INFO - [CausalForest] Epoch 1/1 - collected batch 280/836
+2026-02-26 10:39:46,913 - INFO - [CausalForest] Epoch 1/1 - collected batch 300/836
+2026-02-26 10:39:46,958 - INFO - [CausalForest] Epoch 1/1 - collected batch 320/836
+2026-02-26 10:39:47,004 - INFO - [CausalForest] Epoch 1/1 - collected batch 340/836
+2026-02-26 10:39:47,049 - INFO - [CausalForest] Epoch 1/1 - collected batch 360/836
+2026-02-26 10:39:47,094 - INFO - [CausalForest] Epoch 1/1 - collected batch 380/836
+2026-02-26 10:39:47,140 - INFO - [CausalForest] Epoch 1/1 - collected batch 400/836
+2026-02-26 10:39:47,185 - INFO - [CausalForest] Epoch 1/1 - collected batch 420/836
+2026-02-26 10:39:47,231 - INFO - [CausalForest] Epoch 1/1 - collected batch 440/836
+2026-02-26 10:39:47,276 - INFO - [CausalForest] Epoch 1/1 - collected batch 460/836
+2026-02-26 10:39:47,321 - INFO - [CausalForest] Epoch 1/1 - collected batch 480/836
+2026-02-26 10:39:47,367 - INFO - [CausalForest] Epoch 1/1 - collected batch 500/836
+2026-02-26 10:39:47,412 - INFO - [CausalForest] Epoch 1/1 - collected batch 520/836
+2026-02-26 10:39:47,457 - INFO - [CausalForest] Epoch 1/1 - collected batch 540/836
+2026-02-26 10:39:47,502 - INFO - [CausalForest] Epoch 1/1 - collected batch 560/836
+2026-02-26 10:39:47,547 - INFO - [CausalForest] Epoch 1/1 - collected batch 580/836
+2026-02-26 10:39:47,592 - INFO - [CausalForest] Epoch 1/1 - collected batch 600/836
+2026-02-26 10:39:47,638 - INFO - [CausalForest] Epoch 1/1 - collected batch 620/836
+2026-02-26 10:39:47,683 - INFO - [CausalForest] Epoch 1/1 - collected batch 640/836
+2026-02-26 10:39:47,728 - INFO - [CausalForest] Epoch 1/1 - collected batch 660/836
+2026-02-26 10:39:47,773 - INFO - [CausalForest] Epoch 1/1 - collected batch 680/836
+2026-02-26 10:39:47,818 - INFO - [CausalForest] Epoch 1/1 - collected batch 700/836
+2026-02-26 10:39:47,863 - INFO - [CausalForest] Epoch 1/1 - collected batch 720/836
+2026-02-26 10:39:47,908 - INFO - [CausalForest] Epoch 1/1 - collected batch 740/836
+2026-02-26 10:39:47,953 - INFO - [CausalForest] Epoch 1/1 - collected batch 760/836
+2026-02-26 10:39:47,998 - INFO - [CausalForest] Epoch 1/1 - collected batch 780/836
+2026-02-26 10:39:48,043 - INFO - [CausalForest] Epoch 1/1 - collected batch 800/836
+2026-02-26 10:39:48,088 - INFO - [CausalForest] Epoch 1/1 - collected batch 820/836
+2026-02-26 10:39:48,128 - INFO - [CausalForest] Epoch 1/1 - collected batch 836/836
+2026-02-26 10:39:48,142 - INFO - [CausalForest] Epoch 1/1 - fitting model with N=53452, D=148
+2026-02-26 10:42:20,821 - INFO - [CausalForest] Epoch 1/1 - fit completed
+2026-02-26 10:42:20,825 - INFO - [Complexity] CausalForest (Classic) trainable params(M): N/A
+2026-02-26 10:42:20,826 - INFO - Sampling and Evaluating metrics...
+2026-02-26 11:34:41,309 - INFO - [Metrics] input shapes real_x=(53452, 29), fake_x=(53452, 29), real_y=(53452,), fake_y=(53452,)
+2026-02-26 11:34:41,310 - INFO - [Metrics] preprocess done in 0.01s
+2026-02-26 11:34:41,532 - INFO - [Metrics] fidelity (Wasserstein+CMD) done in 0.22s
+2026-02-26 11:34:47,617 - INFO - [Metrics] ATE done in 6.08s
+2026-02-26 11:34:47,618 - INFO - [Metrics] label dist fake(y=1:1671, y=0:51781) real(y=1:1568, y=0:51884)
+2026-02-26 11:34:48,011 - INFO - [Metrics] TSTR done in 0.39s
+2026-02-26 11:34:48,011 - INFO - [Metrics] total compute_metrics time 6.71s
+2026-02-26 11:34:48,011 - INFO - [Latency] CausalForest (Classic) avg infer(ms/sample): 58.661864530698665
+2026-02-26 11:34:48,011 - INFO - === Running evaluation for SEED: 9999 ===
+2026-02-26 11:34:48,012 - INFO - Evaluating CausalForest (Classic)...
+2026-02-26 11:34:48,013 - INFO - Training Causal Forest ...
+2026-02-26 11:34:48,013 - INFO - [CausalForest] Epoch 1/1 - collecting training batches...
+2026-02-26 11:34:48,071 - INFO - [CausalForest] Epoch 1/1 - collected batch 20/836
+2026-02-26 11:34:48,117 - INFO - [CausalForest] Epoch 1/1 - collected batch 40/836
+2026-02-26 11:34:48,163 - INFO - [CausalForest] Epoch 1/1 - collected batch 60/836
+2026-02-26 11:34:48,209 - INFO - [CausalForest] Epoch 1/1 - collected batch 80/836
+2026-02-26 11:34:48,255 - INFO - [CausalForest] Epoch 1/1 - collected batch 100/836
+2026-02-26 11:34:48,301 - INFO - [CausalForest] Epoch 1/1 - collected batch 120/836
+2026-02-26 11:34:48,347 - INFO - [CausalForest] Epoch 1/1 - collected batch 140/836
+2026-02-26 11:34:48,393 - INFO - [CausalForest] Epoch 1/1 - collected batch 160/836
+2026-02-26 11:34:48,439 - INFO - [CausalForest] Epoch 1/1 - collected batch 180/836
+2026-02-26 11:34:48,484 - INFO - [CausalForest] Epoch 1/1 - collected batch 200/836
+2026-02-26 11:34:48,530 - INFO - [CausalForest] Epoch 1/1 - collected batch 220/836
+2026-02-26 11:34:48,576 - INFO - [CausalForest] Epoch 1/1 - collected batch 240/836
+2026-02-26 11:34:48,621 - INFO - [CausalForest] Epoch 1/1 - collected batch 260/836
+2026-02-26 11:34:48,667 - INFO - [CausalForest] Epoch 1/1 - collected batch 280/836
+2026-02-26 11:34:48,712 - INFO - [CausalForest] Epoch 1/1 - collected batch 300/836
+2026-02-26 11:34:48,758 - INFO - [CausalForest] Epoch 1/1 - collected batch 320/836
+2026-02-26 11:34:48,804 - INFO - [CausalForest] Epoch 1/1 - collected batch 340/836
+2026-02-26 11:34:48,849 - INFO - [CausalForest] Epoch 1/1 - collected batch 360/836
+2026-02-26 11:34:48,895 - INFO - [CausalForest] Epoch 1/1 - collected batch 380/836
+2026-02-26 11:34:48,940 - INFO - [CausalForest] Epoch 1/1 - collected batch 400/836
+2026-02-26 11:34:48,986 - INFO - [CausalForest] Epoch 1/1 - collected batch 420/836
+2026-02-26 11:34:49,031 - INFO - [CausalForest] Epoch 1/1 - collected batch 440/836
+2026-02-26 11:34:49,077 - INFO - [CausalForest] Epoch 1/1 - collected batch 460/836
+2026-02-26 11:34:49,122 - INFO - [CausalForest] Epoch 1/1 - collected batch 480/836
+2026-02-26 11:34:49,168 - INFO - [CausalForest] Epoch 1/1 - collected batch 500/836
+2026-02-26 11:34:49,213 - INFO - [CausalForest] Epoch 1/1 - collected batch 520/836
+2026-02-26 11:34:49,258 - INFO - [CausalForest] Epoch 1/1 - collected batch 540/836
+2026-02-26 11:34:49,304 - INFO - [CausalForest] Epoch 1/1 - collected batch 560/836
+2026-02-26 11:34:49,349 - INFO - [CausalForest] Epoch 1/1 - collected batch 580/836
+2026-02-26 11:34:49,394 - INFO - [CausalForest] Epoch 1/1 - collected batch 600/836
+2026-02-26 11:34:49,439 - INFO - [CausalForest] Epoch 1/1 - collected batch 620/836
+2026-02-26 11:34:49,485 - INFO - [CausalForest] Epoch 1/1 - collected batch 640/836
+2026-02-26 11:34:49,530 - INFO - [CausalForest] Epoch 1/1 - collected batch 660/836
+2026-02-26 11:34:49,575 - INFO - [CausalForest] Epoch 1/1 - collected batch 680/836
+2026-02-26 11:34:49,621 - INFO - [CausalForest] Epoch 1/1 - collected batch 700/836
+2026-02-26 11:34:49,666 - INFO - [CausalForest] Epoch 1/1 - collected batch 720/836
+2026-02-26 11:34:49,712 - INFO - [CausalForest] Epoch 1/1 - collected batch 740/836
+2026-02-26 11:34:49,757 - INFO - [CausalForest] Epoch 1/1 - collected batch 760/836
+2026-02-26 11:34:49,802 - INFO - [CausalForest] Epoch 1/1 - collected batch 780/836
+2026-02-26 11:34:49,848 - INFO - [CausalForest] Epoch 1/1 - collected batch 800/836
+2026-02-26 11:34:49,893 - INFO - [CausalForest] Epoch 1/1 - collected batch 820/836
+2026-02-26 11:34:49,933 - INFO - [CausalForest] Epoch 1/1 - collected batch 836/836
+2026-02-26 11:34:49,948 - INFO - [CausalForest] Epoch 1/1 - fitting model with N=53452, D=148
+2026-02-26 11:37:19,972 - INFO - [CausalForest] Epoch 1/1 - fit completed
+2026-02-26 11:37:19,975 - INFO - [Complexity] CausalForest (Classic) trainable params(M): N/A
+2026-02-26 11:37:19,976 - INFO - Sampling and Evaluating metrics...
+2026-02-26 12:29:37,661 - INFO - [Metrics] input shapes real_x=(53452, 29), fake_x=(53452, 29), real_y=(53452,), fake_y=(53452,)
+2026-02-26 12:29:37,661 - INFO - [Metrics] preprocess done in 0.01s
+2026-02-26 12:29:37,879 - INFO - [Metrics] fidelity (Wasserstein+CMD) done in 0.22s
+2026-02-26 12:29:46,465 - INFO - [Metrics] ATE done in 8.59s
+2026-02-26 12:29:46,467 - INFO - [Metrics] label dist fake(y=1:1671, y=0:51781) real(y=1:1568, y=0:51884)
+2026-02-26 12:29:46,855 - INFO - [Metrics] TSTR done in 0.39s
+2026-02-26 12:29:46,856 - INFO - [Metrics] total compute_metrics time 9.20s
+2026-02-26 12:29:46,856 - INFO - [Latency] CausalForest (Classic) avg infer(ms/sample): 58.60956832720186
+2026-02-26 12:29:46,856 - INFO - === Aggregating Results ===
+2026-02-26 12:29:46,860 - INFO - 
+| Model                  | ATE_Bias        | Wasserstein     | CMD             | TSTR_AUC        | TSTR_F1         | Params(M)   | AvgInfer(ms/sample)   |
+|------------------------|-----------------|-----------------|-----------------|-----------------|-----------------|-------------|-----------------------|
+| CausalForest (Classic) | 0.0371 ± 0.0079 | 0.4139 ± 0.0001 | 0.8773 ± 0.0017 | 0.5001 ± 0.1243 | 0.0502 ± 0.0126 | N/A         | 58.7680 ± 0.1218      |
+| STaSy (ICLR 23)        | 0.0016 ± 0.0011 | 0.1627 ± 0.0707 | 0.1448 ± 0.0573 | 0.9973 ± 0.0024 | 0.8703 ± 0.0329 | N/A         | N/A                   |
+2026-02-26 12:29:46,860 - INFO - Reports saved to markdown_report.md and latex_report.txt

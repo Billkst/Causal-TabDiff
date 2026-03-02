@@ -5,7 +5,6 @@ import torch
 import logging
 import os
 import time
-from collections import defaultdict
 from tabulate import tabulate
 
 from src.data.data_module import get_dataloader
@@ -44,9 +43,20 @@ def set_seed(seed):
 
 from scipy.stats import wasserstein_distance
 from sklearn.linear_model import Ridge
-from sklearn.metrics import mean_squared_error, roc_auc_score, f1_score
+from sklearn.metrics import roc_auc_score, f1_score
 from xgboost import XGBClassifier
 from econml.dml import LinearDML
+
+METRIC_COLUMNS = ["ATE_Bias", "Wasserstein", "CMD", "TSTR_AUC", "TSTR_F1"]
+EXTRA_COLUMNS = ["Params(M)", "AvgInfer(ms/sample)"]
+REPORT_COLUMNS = METRIC_COLUMNS + EXTRA_COLUMNS
+MODEL_ORDER = [
+    'CausalForest (Classic)',
+    'STaSy (ICLR 23)',
+    'TabSyn (ICLR 24)',
+    'TabDiff (ICLR 25)',
+    'TSDiff (ICLR 23)'
+]
 
 def cmd_dist(x, y):
     """Correlation Matrix Distance between two numeric datasets x and y."""
@@ -167,21 +177,131 @@ def compute_metrics(real_x, fake_x, real_y, fake_y, alpha_tgt):
         
     return {"ATE_Bias": ate_bias, "Wasserstein": wasserstein, "CMD": cmd, "TSTR_AUC": tstr_auc, "TSTR_F1": tstr_f1}
 
-def format_latex_table(results_mean, results_std, models, metrics):
-    r"""Generates LaTeX code for a table containing mean \pm std"""
-    latex_str = "\\begin{table}[h]\n\\centering\n\\begin{tabular}{l" + "c" * len(metrics) + "}\n\\hline\n"
-    latex_str += "Model & " + " & ".join(metrics) + " \\\\\n\\hline\n"
-    
-    for model in models:
-        row = [model]
-        for metric in metrics:
-            mean_val = results_mean[model][metric]
-            std_val = results_std[model][metric]
-            row.append(f"${mean_val:.4f} \\pm {std_val:.4f}$")
-        latex_str += " & ".join(row) + " \\\\\n"
-        
-    latex_str += "\\hline\n\\end{tabular}\n\\caption{Baseline Evaluation Results}\n\\label{tab:baselines}\n\\end{table}"
-    return latex_str
+
+def safe_mean_std(values):
+    arr = np.array(values, dtype=float)
+    arr = arr[np.isfinite(arr)]
+    if arr.size == 0:
+        return float('nan'), float('nan')
+    return float(np.mean(arr)), float(np.std(arr))
+
+
+def format_mean_std(mean_v, std_v):
+    if not np.isfinite(mean_v) or not np.isfinite(std_v):
+        return "N/A"
+    return f"{mean_v:.4f} ± {std_v:.4f}"
+
+
+def estimate_trainable_params_m(wrapper):
+    if hasattr(wrapper, 'estimate_params_count'):
+        try:
+            custom_count = float(wrapper.estimate_params_count())
+            if np.isfinite(custom_count) and custom_count > 0:
+                return custom_count / 1e6
+        except Exception:
+            pass
+
+    total = 0
+    seen = set()
+    for obj in wrapper.__dict__.values():
+        if isinstance(obj, torch.nn.Module):
+            obj_id = id(obj)
+            if obj_id in seen:
+                continue
+            seen.add(obj_id)
+            total += sum(p.numel() for p in obj.parameters() if p.requires_grad)
+    if total <= 0:
+        return float('nan')
+    return total / 1e6
+
+
+def parse_existing_markdown_rows(file_path):
+    if not os.path.exists(file_path):
+        return {}
+    with open(file_path, 'r', encoding='utf-8') as f:
+        lines = [ln.rstrip('\n') for ln in f.readlines()]
+
+    table_lines = [ln.strip() for ln in lines if ln.strip().startswith('|')]
+    if len(table_lines) < 3:
+        return {}
+
+    headers = [h.strip() for h in table_lines[0].strip('|').split('|')]
+    if not headers or headers[0] != 'Model':
+        return {}
+
+    parsed = {}
+    for row_line in table_lines[2:]:
+        cells = [c.strip() for c in row_line.strip('|').split('|')]
+        if len(cells) != len(headers):
+            continue
+        row = dict(zip(headers, cells))
+        model = row.get('Model', '')
+        if not model:
+            continue
+        parsed[model] = row
+    return parsed
+
+
+def merge_report_rows(existing_rows, current_rows):
+    merged = {}
+
+    for model, row in existing_rows.items():
+        merged[model] = {col: row.get(col, 'N/A') for col in REPORT_COLUMNS}
+
+    for model, row in current_rows.items():
+        merged[model] = {col: row.get(col, 'N/A') for col in REPORT_COLUMNS}
+
+    ordered_models = [m for m in MODEL_ORDER if m in merged]
+    ordered_models.extend([m for m in merged.keys() if m not in ordered_models])
+
+    return ordered_models, merged
+
+
+def to_latex_cell(value):
+    if value == "N/A":
+        return "N/A"
+    if "±" in value:
+        return "$" + value.replace("±", "\\pm") + "$"
+    return value
+
+
+def write_reports(current_rows):
+    existing_rows = parse_existing_markdown_rows('markdown_report.md')
+    ordered_models, merged = merge_report_rows(existing_rows, current_rows)
+
+    table_data = []
+    for model in ordered_models:
+        row = [model] + [merged[model][col] for col in REPORT_COLUMNS]
+        table_data.append(row)
+
+    md_table = tabulate(table_data, headers=["Model"] + REPORT_COLUMNS, tablefmt="github")
+    with open('markdown_report.md', 'w', encoding='utf-8') as f:
+        f.write("# Baseline Evaluation Results\n\n")
+        f.write(md_table)
+        f.write("\n")
+
+    latex_lines = []
+    latex_lines.append("\\begin{table}[h]")
+    latex_lines.append("\\centering")
+    latex_lines.append("\\begin{tabular}{l" + "c" * len(REPORT_COLUMNS) + "}")
+    latex_lines.append("\\hline")
+    latex_lines.append("Model & " + " & ".join(REPORT_COLUMNS) + " \\\\")
+    latex_lines.append("\\hline")
+    for model in ordered_models:
+        cells = [model] + [to_latex_cell(merged[model][col]) for col in REPORT_COLUMNS]
+        latex_lines.append(" & ".join(cells) + " \\\\")
+    latex_lines.append("\\hline")
+    latex_lines.append("\\end{tabular}")
+    latex_lines.append("\\caption{Baseline Evaluation Results}")
+    latex_lines.append("\\label{tab:baselines}")
+    latex_lines.append("\\end{table}")
+
+    with open('latex_report.txt', 'w', encoding='utf-8') as f:
+        f.write("% Baseline Evaluation Results LaTeX Code\n")
+        f.write("\n".join(latex_lines))
+        f.write("\n")
+
+    logger.info("\n" + md_table)
 
 def main():
     parser = argparse.ArgumentParser(description="Unified Baseline Evaluation Script")
@@ -213,15 +333,16 @@ def main():
         'TSDiff (ICLR 23)': TSDiffWrapper
     }
     
-    if args.model != 'all':
-        if args.model in model_classes:
-            model_classes = {args.model: model_classes[args.model]}
-            logger.info(f"Filtered execution to single model: {args.model}")
-        else:
-            raise ValueError(f"Unknown model: {args.model}. Available: {list(model_classes.keys())}")
+    if args.model == 'all':
+        raise ValueError("安全约束：当前仅允许单模型运行。请使用 --model 指定一个模型（TabSyn/TabDiff/TSDiff 同样一次只能跑一个）。")
 
-    metrics_list = ["ATE_Bias", "Wasserstein", "CMD", "TSTR_AUC", "TSTR_F1"]
-    raw_results = {model: {m: [] for m in metrics_list} for model in model_classes.keys()}
+    if args.model in model_classes:
+        model_classes = {args.model: model_classes[args.model]}
+        logger.info(f"Filtered execution to single model: {args.model}")
+    else:
+        raise ValueError(f"Unknown model: {args.model}. Available: {list(model_classes.keys())}")
+
+    raw_results = {model: {m: [] for m in REPORT_COLUMNS} for model in model_classes.keys()}
 
     for seed in args.seeds:
         logger.info(f"=== Running evaluation for SEED: {seed} ===")
@@ -237,6 +358,9 @@ def main():
             # 1. Train
             epochs = 1 if args.debug_mode else 100
             wrapper.fit(dataloader, epochs=epochs, device=device, debug_mode=args.debug_mode)
+            params_m = estimate_trainable_params_m(wrapper)
+            raw_results[model_name]["Params(M)"].append(params_m)
+            logger.info(f"[Complexity] {model_name} trainable params(M): {params_m if np.isfinite(params_m) else 'N/A'}")
             
             # Load metadata
             import json, os
@@ -249,6 +373,8 @@ def main():
             # 2. Evaluate
             logger.info("Sampling and Evaluating metrics...")
             all_real_x, all_fake_x, all_real_y, all_fake_y, all_alpha = [], [], [], [], []
+            infer_time_total_s = 0.0
+            infer_sample_count = 0
             for i, batch in enumerate(dataloader):
                 if args.debug_mode and i >= 2: break 
                 
@@ -258,7 +384,14 @@ def main():
                 cat_raw = batch['x_cat_raw'].to(device).float()
                 
                 # Sample
+                if device.type == 'cuda':
+                    torch.cuda.synchronize(device)
+                sample_t0 = time.perf_counter()
                 fake_x, fake_y = wrapper.sample(batch_size=real_x_analog.shape[0], alpha_target=alpha_tgt, device=device)
+                if device.type == 'cuda':
+                    torch.cuda.synchronize(device)
+                infer_time_total_s += (time.perf_counter() - sample_t0)
+                infer_sample_count += int(real_x_analog.shape[0])
                 
                 
                 real_x_raw_list = []
@@ -304,49 +437,34 @@ def main():
             # Metrics
             try:
                 metrics_dict = compute_metrics(real_x_full, fake_x_full, real_y_full, fake_y_full, alpha_full)
-                for m in metrics_list:
+                for m in METRIC_COLUMNS:
                     raw_results[model_name][m].append(metrics_dict[m])
             except Exception as e:
                 import traceback
                 traceback.print_exc()
                 logger.error(f"Metrics Evaluation halted for {model_name} on Seed {seed}: {e}")
-                for m in metrics_list:
+                for m in METRIC_COLUMNS:
                     raw_results[model_name][m].append(float('nan'))
+
+            if infer_sample_count > 0:
+                infer_ms_per_sample = infer_time_total_s * 1000.0 / infer_sample_count
+            else:
+                infer_ms_per_sample = float('nan')
+            raw_results[model_name]["AvgInfer(ms/sample)"].append(infer_ms_per_sample)
+            logger.info(f"[Latency] {model_name} avg infer(ms/sample): {infer_ms_per_sample if np.isfinite(infer_ms_per_sample) else 'N/A'}")
 
     # 3. Aggregate Results
     logger.info("=== Aggregating Results ===")
-    results_mean = {}
-    results_std = {}
-    
-    table_data = []
-    
+    current_rows = {}
+
     for model in model_classes.keys():
-        results_mean[model] = {}
-        results_std[model] = {}
-        row = [model]
-        for m in metrics_list:
-            mean_v = np.mean(raw_results[model][m])
-            std_v = np.std(raw_results[model][m])
-            results_mean[model][m] = mean_v
-            results_std[model][m] = std_v
-            row.append(f"{mean_v:.4f} ± {std_v:.4f}")
-        table_data.append(row)
-        
-    # Generate Markdown Table
-    md_table = tabulate(table_data, headers=["Model"] + metrics_list, tablefmt="github")
-    logger.info("\n" + md_table)
-    
-    with open('markdown_report.md', 'w') as f:
-        f.write("# Baseline Evaluation Results\n\n")
-        f.write(md_table)
-        f.write("\n")
-        
-    # Generate LaTeX Table
-    latex_table = format_latex_table(results_mean, results_std, model_classes.keys(), metrics_list)
-    with open('latex_report.txt', 'w') as f:
-        f.write("% Baseline Evaluation Results LaTeX Code\n")
-        f.write(latex_table)
-        f.write("\n")
+        row = {}
+        for col in REPORT_COLUMNS:
+            mean_v, std_v = safe_mean_std(raw_results[model][col])
+            row[col] = format_mean_std(mean_v, std_v)
+        current_rows[model] = row
+
+    write_reports(current_rows)
         
     logger.info("Reports saved to markdown_report.md and latex_report.txt")
 
