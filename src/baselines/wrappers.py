@@ -131,6 +131,53 @@ class CausalForestWrapper(BaselineWrapper):
         return torch.tensor(X_cf_semantic[:, -1, :], dtype=torch.float32, device=device), \
                torch.tensor(Y_cf, dtype=torch.float32, device=device)
 
+    def estimate_params_count(self):
+        """
+        结构参数量估计（用于与神经网络参数量同表展示）：
+        对每棵已拟合GRF树按 node_count * 4 计数（feature, threshold, value, impurity 近似标量）。
+        """
+        if not self.fitted:
+            return float('nan')
+
+        total_nodes = 0
+
+        def collect_from_estimators_list(estimators):
+            nonlocal total_nodes
+            if estimators is None:
+                return
+            for est in estimators:
+                # Case A: raw tree estimator exposing .tree_
+                tree = getattr(est, 'tree_', None)
+                if tree is not None:
+                    total_nodes += int(getattr(tree, 'node_count', 0))
+                    continue
+
+                # Case B: forest estimator exposing nested .estimators_
+                nested_estimators = getattr(est, 'estimators_', None)
+                if nested_estimators is not None:
+                    collect_from_estimators_list(nested_estimators)
+
+        try:
+            model_cate = getattr(self.model, 'model_cate', None)
+            model_final = getattr(self.model, 'model_final_', None)
+            rlearner_model_final = getattr(self.model, 'rlearner_model_final_', None)
+            wrapped_model = getattr(rlearner_model_final, '_model', None) if rlearner_model_final is not None else None
+
+            for obj in [model_cate, model_final, wrapped_model, self.model]:
+                if obj is None:
+                    continue
+                estimators = getattr(obj, 'estimators_', None)
+                if estimators is not None:
+                    collect_from_estimators_list(estimators)
+
+            if total_nodes <= 0:
+                return float('nan')
+
+            # 4 scalars per node as a consistent structural proxy
+            return float(total_nodes * 4)
+        except Exception:
+            return float('nan')
+
 class STaSyWrapper(BaselineWrapper):
     def __init__(self, t_steps, feature_dim, **kwargs):
         super().__init__(t_steps, feature_dim, **kwargs)
