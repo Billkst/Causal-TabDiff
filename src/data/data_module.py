@@ -6,6 +6,18 @@ from scipy.stats import norm
 import json
 import os
 
+
+def resolve_metadata_path(default_path):
+    env_path = os.environ.get('DATASET_METADATA_PATH', '').strip()
+    if env_path:
+        if not os.path.isabs(env_path):
+            project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+            env_path = os.path.join(project_root, env_path)
+        if os.path.exists(env_path):
+            return env_path
+        raise FileNotFoundError(f"DATASET_METADATA_PATH points to missing file: {env_path}")
+    return default_path
+
 class NLSTDataset(Dataset):
     def __init__(self, data_dir, debug_mode=False):
         """
@@ -18,6 +30,7 @@ class NLSTDataset(Dataset):
         
     def _load_metadata(self):
         meta_path = os.path.join(os.path.dirname(__file__), 'dataset_metadata.json')
+        meta_path = resolve_metadata_path(meta_path)
         if not os.path.exists(meta_path):
             import subprocess, sys
             print(f"Metadata not found at {meta_path}. Auto-generating it.")

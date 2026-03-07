@@ -2,8 +2,22 @@ import torch
 import numpy as np
 from .base import BaselineWrapper
 import logging
+import os
 
 logger = logging.getLogger(__name__)
+
+
+def _resolve_metadata_path():
+    env_path = os.environ.get('DATASET_METADATA_PATH', '').strip()
+    if env_path:
+        if not os.path.isabs(env_path):
+            project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+            env_path = os.path.join(project_root, env_path)
+        if os.path.exists(env_path):
+            return env_path
+        raise FileNotFoundError(f"DATASET_METADATA_PATH points to missing file: {env_path}")
+
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'dataset_metadata.json'))
 
 class CausalForestWrapper(BaselineWrapper):
     """
@@ -99,14 +113,12 @@ class CausalForestWrapper(BaselineWrapper):
 
         # Reshape X back to [Batch, T, D]
         X_cf_reshaped = X_cf.reshape(batch_size, self.t_steps, self.feature_dim) # This has analog bits!
-        
+
         # We must decode this into semantic categorical integers (5D)
-        import os, json
-        meta_path = 'src/data/dataset_metadata.json'
-        if not os.path.exists(meta_path):
-             meta_path = 'dataset_metadata.json'
+        import json
+        meta_path = _resolve_metadata_path()
         with open(meta_path, 'r') as f:
-             meta = json.load(f)
+            meta = json.load(f)
              
         D_discrete = len(meta['columns'])
         X_cf_semantic = np.zeros((batch_size, self.t_steps, D_discrete))
@@ -329,14 +341,12 @@ class STaSyWrapper(BaselineWrapper):
         X_cf = XYT_cf[:, :-2]
         
         X_cf_reshaped = X_cf.view(batch_size, self.t_steps, self.feature_dim)
-        
+
         # Decode Analog Bits back to semantic integers for STaSy
-        import os, json
-        meta_path = 'src/data/dataset_metadata.json'
-        if not os.path.exists(meta_path):
-             meta_path = 'dataset_metadata.json'
+        import json
+        meta_path = _resolve_metadata_path()
         with open(meta_path, 'r') as f:
-             meta = json.load(f)
+            meta = json.load(f)
              
         D_discrete = len(meta['columns'])
         X_cf_semantic = torch.zeros((batch_size, self.t_steps, D_discrete), device=device)
@@ -355,6 +365,16 @@ class STaSyWrapper(BaselineWrapper):
                         idx_val = (idx_val << 1) | bits[:, b:b+1]
                     X_cf_semantic[:, t, i_col:i_col+1] = idx_val.float()
                 analog_offset += dim
+
+        jitter_scale = float(os.environ.get('STASY_SAMPLE_CONT_JITTER', '0') or 0.0)
+        if jitter_scale > 0:
+            cont_indices = [i for i, col_meta in enumerate(meta['columns']) if col_meta['type'] == 'continuous']
+            if cont_indices:
+                for col_idx in cont_indices:
+                    col_vals = X_cf_semantic[:, :, col_idx:col_idx+1]
+                    col_std = torch.std(col_vals)
+                    noise = torch.randn_like(col_vals) * (jitter_scale * (col_std + 1e-6))
+                    X_cf_semantic[:, :, col_idx:col_idx+1] = col_vals + noise
                 
         return X_cf_semantic[:, -1, :], Y_cf
 
@@ -366,13 +386,17 @@ class TSDiffWrapper(BaselineWrapper):
     def fit(self, dataloader, epochs, device, debug_mode=False):
         logger.info(f"Training TSDiff (ICLR 2023) {'(Debug)' if debug_mode else ''}...")
         
-        import torch, json, os, sys
-        self.tsdiff_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'tsdiff_core'))
-        if self.tsdiff_path not in sys.path:
-            sys.path.insert(0, self.tsdiff_path)
-        from model import TSDiffDDPM
+        import torch, json, os
+        try:
+            from .tsdiff_core.model import TSDiffDDPM
+        except Exception:
+            import sys
+            self.tsdiff_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'tsdiff_core'))
+            if self.tsdiff_path not in sys.path:
+                sys.path.insert(0, self.tsdiff_path)
+            from model import TSDiffDDPM
         
-        meta_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'dataset_metadata.json'))
+        meta_path = _resolve_metadata_path()
         with open(meta_path, 'r') as f:
              self.metadata = json.load(f)
              
@@ -485,8 +509,8 @@ class TabSynWrapper(BaselineWrapper):
         from .tabsyn_core.model import MLPDiffusion, Model
         
         # 1. Collect all data
-        import json, os
-        meta_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'dataset_metadata.json'))
+        import json
+        meta_path = _resolve_metadata_path()
         with open(meta_path, 'r') as f:
              self.metadata = json.load(f)
              
@@ -687,13 +711,10 @@ class TabDiffWrapper(BaselineWrapper):
         
         from .tabdiff_core.modules.main_modules import UniModMLP, Model
         from .tabdiff_core.models.unified_ctime_diffusion import UnifiedCtimeDiffusion
-        
+
         # Determine exact dataset metadata config
-        import os
-        metadata_path = 'src/data/dataset_metadata.json'
-        if not os.path.exists(metadata_path):
-             metadata_path = 'dataset_metadata.json' # Fallback if run elsewhere
-             
+        metadata_path = _resolve_metadata_path()
+
         with open(metadata_path, 'r') as f:
             import json
             meta = json.load(f)
@@ -908,13 +929,11 @@ class CausalTabDiffWrapper(BaselineWrapper):
         self.model.eval()
         with torch.no_grad():
             sampled = self.model.sample_with_guidance(batch_size=batch_size, alpha_target=alpha_target, guidance_scale=2.0)
-            
-        import os, json
-        meta_path = 'src/data/dataset_metadata.json'
-        if not os.path.exists(meta_path):
-             meta_path = 'dataset_metadata.json'
+
+            import json
+            meta_path = _resolve_metadata_path()
         with open(meta_path, 'r') as f:
-             meta = json.load(f)
+            meta = json.load(f)
              
         D_discrete = len(meta['columns'])
         X_cf_semantic = torch.zeros((batch_size, self.t_steps, D_discrete), device=device)
