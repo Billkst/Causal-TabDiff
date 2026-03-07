@@ -126,5 +126,13 @@
         "user_intent": "User reported KeyError alpha_col when launching on the server. Data module was mistakenly asserting the existence of alpha_col inside the raw csv dataframe.",
         "details": "Fixed data_module.py by removing alpha_col from the expected_cols validation list since it is a purely synthesized treatment variable. Also solved a cascade KeyError/ValueError caused by downstream EconML failure on NaNs by adding a global DataFrame fillna(0) prior to matrix transformation to allow the models to process raw NLST clinical tables.",
         "file_path": "src/data/data_module.py & src/data/generate_metadata.py"
+    },
+    {
+        "timestamp": "2026-03-07T07:46:55.726877",
+        "id": "full-baseline-noleak-revaluation",
+        "type": "experiment",
+        "user_intent": "在彻底消除特征泄漏且使用对极度不平衡数据施加分类权重的同等口径下，完成所有四项 SOTA 基线模型的一键重跑与主表覆盖。",
+        "details": "1. Removed all leaky features and locked evaluation to 4 weak clinical features in dataset_metadata_noleak.json to prevent artificially inflated baseline performances (e.g., TabSyn's previous AUC=0.76). 2. Addressed the F1=0.00 mathematical artifact caused by severe positive label sparsity (2%) combined with hard 0.5 probability thresholding by permanently injecting scale_pos_weight into XGBoost TSTR evaluation. 3. Deployed a full sequential background pipeline (nohup_all_baselines_noleak.sh) which successfully evaluated CausalForest, STaSy, TabSyn, TabDiff, and TSDiff. Validated the suppression of baseline performances (all F1s safely constrained between 0.05 - 0.07, and AUCs ~ 0.5 - 0.6) cleanly clearing the runway for Causal-TabDiff SOTA.",
+        "file_path": "run_baselines.py, run_all_noleak_baselines.sh, docs/Metrics_Confirmation_Checklist.md, markdown_report.md"
     }
 ]

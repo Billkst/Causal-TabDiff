@@ -1,0 +1,138 @@
+{
+    "columns": [
+        {
+            "name": "race",
+            "type": "categorical",
+            "dim": 4
+        },
+        {
+            "name": "cigsmok",
+            "type": "categorical",
+            "dim": 1
+        },
+        {
+            "name": "gender",
+            "type": "categorical",
+            "dim": 1
+        },
+        {
+            "name": "age",
+            "type": "continuous",
+            "dim": 1
+        }
+    ],
+    "continuous": [
+        {
+            "name": "age",
+            "dim": 1
+        }
+    ],
+    "categorical": [
+        {
+            "name": "race",
+            "classes": 11,
+            "analog_bits": 4,
+            "val_to_idx": {
+                "1": 0,
+                "2": 1,
+                "3": 2,
+                "4": 3,
+                "5": 4,
+                "6": 5,
+                "7": 6,
+                "95": 7,
+                "96": 8,
+                "98": 9,
+                "99": 10
+            },
+            "idx_to_val": {
+                "0": 1,
+                "1": 2,
+                "2": 3,
+                "3": 4,
+                "4": 5,
+                "5": 6,
+                "6": 7,
+                "7": 95,
+                "8": 96,
+                "9": 98,
+                "10": 99
+            }
+        },
+        {
+            "name": "cigsmok",
+            "classes": 2,
+            "analog_bits": 1,
+            "val_to_idx": {
+                "0": 0,
+                "1": 1
+            },
+            "idx_to_val": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        {
+            "name": "gender",
+            "classes": 2,
+            "analog_bits": 1,
+            "val_to_idx": {
+                "1": 0,
+                "2": 1
+            },
+            "idx_to_val": {
+                "0": 1,
+                "1": 2
+            }
+        }
+    ],
+    "y_col": {
+        "name": "cancyr",
+        "classes": 8,
+        "analog_bits": 0
+    },
+    "feature_policy": {
+        "name": "noleak_v1",
+        "removed_exact": [
+            "can_scr"
+        ],
+        "removed_prefix": [
+            "scr_",
+            "loc",
+            "lesion"
+        ],
+        "removed_columns": [
+            "loclhil",
+            "locllow",
+            "loclup",
+            "locrhil",
+            "locrlow",
+            "locrmid",
+            "locunk",
+            "locrup",
+            "locoth",
+            "locmed",
+            "loclmsb",
+            "locrmsb",
+            "loccar",
+            "loclin",
+            "lesionsize",
+            "scr_res0",
+            "scr_res1",
+            "scr_res2",
+            "scr_iso0",
+            "scr_iso1",
+            "scr_iso2",
+            "can_scr",
+            "scr_days0",
+            "scr_days1",
+            "scr_days2"
+        ],
+        "kept_columns": [
+            "race",
+            "cigsmok",
+            "gender",
+            "age"
+        ]
+    }
+}
