@@ -44,6 +44,36 @@ class NLSTDataset(Dataset):
         self.categorical_cols = [c['name'] for c in self.metadata['categorical']]
         self.y_col = self.metadata['y_col']['name']
         self.cat_meta_map = {c['name']: c for c in self.metadata['categorical']}
+
+    def _build_alpha_target(self):
+        alpha_col = os.environ.get('ALPHA_TREATMENT_COLUMN', '').strip()
+        if not alpha_col:
+            self.alpha_target_source = 'synthetic_uniform'
+            return np.random.uniform(0.1, 0.9, size=(self.num_samples, 1))
+
+        if alpha_col not in self.merged_df.columns:
+            raise KeyError(f"CRITICAL ERROR: ALPHA_TREATMENT_COLUMN='{alpha_col}' is missing from prsn_df.")
+
+        self.alpha_target_source = alpha_col
+        alpha_series = self.merged_df[alpha_col].fillna(0)
+
+        if alpha_col in self.categorical_cols:
+            meta = self.cat_meta_map[alpha_col]
+            val_to_idx = meta['val_to_idx']
+            encoded = []
+            for val in alpha_series:
+                idx_str = str(int(val)) if not np.isnan(val) else "0"
+                encoded.append(float(val_to_idx.get(idx_str, 0)))
+            encoded = np.asarray(encoded, dtype=np.float32).reshape(-1, 1)
+            max_idx = max(1, meta['classes'] - 1)
+            return encoded / max_idx
+
+        numeric = alpha_series.astype(float).to_numpy(dtype=np.float32).reshape(-1, 1)
+        min_v = float(np.min(numeric))
+        max_v = float(np.max(numeric))
+        if max_v - min_v < 1e-12:
+            return np.zeros_like(numeric, dtype=np.float32)
+        return (numeric - min_v) / (max_v - min_v)
         
     def _load_data(self):
         prsn_path = os.path.join(self.data_dir, 'nlst.780.idc.delivery.052821', 'nlst_780_prsn_idc_20210527.csv')
@@ -150,9 +180,10 @@ class NLSTDataset(Dataset):
                 
                 feature_offset += col_dim
              
-        # Generate dummy causal conditions (alpha target representing environmental exposure)
-        # We will use this as our Treatment T
-        self.alpha_target = np.random.uniform(0.1, 0.9, size=(self.num_samples, 1))
+        # Controlled treatment construction:
+        # default keeps the legacy synthetic alpha for backward compatibility,
+        # while ALPHA_TREATMENT_COLUMN enables a real clinically interpretable exposure.
+        self.alpha_target = self._build_alpha_target()
         
         # Ground truth Y (Outcome)
         self.y = self.merged_df[self.y_col].values.reshape(-1, 1)

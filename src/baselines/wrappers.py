@@ -894,63 +894,244 @@ class CausalTabDiffWrapper(BaselineWrapper):
         # If in debug mode, keep diffusion steps small, otherwise 100 for evaluation
         # Let's read from kwargs or default to a small number
         diffusion_steps = kwargs.get('diffusion_steps', 100)
-        self.model = CausalTabDiff(t_steps=t_steps, feature_dim=feature_dim, diffusion_steps=diffusion_steps)
-        
-    def fit(self, dataloader, epochs, device, debug_mode=False):
-        logger.info(f"Training Causal-TabDiff {'(Debug)' if debug_mode else ''}...")
-        self.model.to(device)
-        self.model.train()
-        optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3)
-        
-        for epoch in range(epochs):
-            num_batches = len(dataloader) if not debug_mode else min(2, len(dataloader))
-            epoch_loss = 0
-            log_every = 20
-            for i, batch in enumerate(dataloader):
-                if debug_mode and i >= 2: break
-                x = batch['x'].to(device)
-                alpha_tgt = batch['alpha_target'].to(device)
-                
-                optimizer.zero_grad()
-                # Assuming causal_tabdiff architecture will be updated to output Y
-                # For now, placeholder diff_loss
-                diff_loss, disc_loss = self.model(x, alpha_tgt)
-                loss = diff_loss + 0.5 * disc_loss
-                loss.backward()
-                optimizer.step()
-                epoch_loss += loss.item()
-                batch_idx = i + 1
-                if batch_idx % log_every == 0 or batch_idx == num_batches:
-                    logger.info(f"[Causal-TabDiff] Epoch {epoch + 1}/{epochs} - batch {batch_idx}/{num_batches}, loss={loss.item():.6f}")
-            avg_loss = epoch_loss / max(1, num_batches)
-            logger.info(f"[Causal-TabDiff] Epoch {epoch + 1}/{epochs} - avg_loss={avg_loss:.6f}, batches={num_batches}")
+        use_noise_head = bool(kwargs.get('use_noise_head', True))
+        self.model = CausalTabDiff(
+            t_steps=t_steps,
+            feature_dim=feature_dim,
+            diffusion_steps=diffusion_steps,
+            use_noise_head=use_noise_head,
+        )
+        self.use_noise_head = use_noise_head
+        self.y_positive_rate = float(kwargs.get('default_y_positive_rate', 0.03))
+        self.outcome_loss_weight = float(kwargs.get('outcome_loss_weight', 1.0))
+        self.outcome_rank_loss_weight = float(max(0.0, kwargs.get('outcome_rank_loss_weight', 0.0)))
+        self.use_trajectory_risk_head = bool(kwargs.get('use_trajectory_risk_head', False))
+        self.risk_smoothness_weight = float(max(0.0, kwargs.get('risk_smoothness_weight', 0.0)))
+        self.cf_consistency_weight = float(max(0.0, kwargs.get('cf_consistency_weight', 0.0)))
+        self.denoise_recon_weight = float(max(0.0, kwargs.get('denoise_recon_weight', 0.0)))
+        self.batch_moment_weight = float(max(0.0, kwargs.get('batch_moment_weight', 0.0)))
+        self.sample_use_trajectory_risk = bool(kwargs.get('sample_use_trajectory_risk', False))
+        self.sample_model_score_weight = float(np.clip(kwargs.get('sample_model_score_weight', 0.75), 0.0, 1.0))
+        self.sample_guidance_scale = float(max(0.0, kwargs.get('sample_guidance_scale', 1.0)))
+        self.sample_guidance_schedule = str(kwargs.get('sample_guidance_schedule', 'constant'))
+        self.sample_guidance_power = float(max(1.0, kwargs.get('sample_guidance_power', 2.0)))
+        self.outcome_model = None
+        self.outcome_feature_dim = None
+        self._cached_meta = None
 
-    def sample(self, batch_size, alpha_target, device):
-        self.model.eval()
-        with torch.no_grad():
-            sampled = self.model.sample_with_guidance(batch_size=batch_size, alpha_target=alpha_target, guidance_scale=2.0)
-
+    def _get_metadata(self):
+        if self._cached_meta is None:
             import json
             meta_path = _resolve_metadata_path()
-        with open(meta_path, 'r') as f:
-            meta = json.load(f)
-             
-        D_discrete = len(meta['columns'])
-        X_cf_semantic = torch.zeros((batch_size, self.t_steps, D_discrete), device=device)
-        
+            with open(meta_path, 'r') as f:
+                self._cached_meta = json.load(f)
+        return self._cached_meta
+
+    def _decode_semantic_from_analog(self, sampled, device):
+        meta = self._get_metadata()
+        batch_size = sampled.shape[0]
+        d_semantic = len(meta['columns'])
+        x_semantic = torch.zeros((batch_size, self.t_steps, d_semantic), device=device)
+
         for t in range(self.t_steps):
             analog_offset = 0
             for i_col, col_meta in enumerate(meta['columns']):
                 dim = col_meta['dim']
                 feat = sampled[:, t, analog_offset : analog_offset + dim]
                 if col_meta['type'] == 'continuous':
-                    X_cf_semantic[:, t, i_col:i_col+1] = feat
+                    x_semantic[:, t, i_col:i_col+1] = feat
                 else:
                     bits = (feat > 0).long()
                     idx_val = torch.zeros((batch_size, 1), dtype=torch.long, device=device)
                     for b in range(dim):
                         idx_val = (idx_val << 1) | bits[:, b:b+1]
-                    X_cf_semantic[:, t, i_col:i_col+1] = idx_val.float()
+                    x_semantic[:, t, i_col:i_col+1] = idx_val.float()
                 analog_offset += dim
+
+        return x_semantic
+
+    def _pack_semantic_real_features(self, batch):
+        meta = self._get_metadata()
+        x_last = batch['x'][:, -1, :].detach().cpu()
+        x_cat_raw_last = batch['x_cat_raw'][:, -1, :].detach().cpu()
+        alpha = batch['alpha_target'].detach().cpu().float()
+
+        batch_size = x_last.shape[0]
+        d_semantic = len(meta['columns'])
+        x_semantic_last = torch.zeros((batch_size, d_semantic), dtype=torch.float32)
+
+        analog_offset = 0
+        cat_offset = 0
+        for i_col, col_meta in enumerate(meta['columns']):
+            if col_meta['type'] == 'continuous':
+                x_semantic_last[:, i_col:i_col+1] = x_last[:, analog_offset : analog_offset + 1].float()
+                analog_offset += col_meta['dim']
+            else:
+                x_semantic_last[:, i_col:i_col+1] = x_cat_raw_last[:, cat_offset : cat_offset + 1].float()
+                analog_offset += col_meta['dim']
+                cat_offset += 1
+
+        return torch.cat([x_semantic_last, alpha], dim=1).numpy()
+
+    def _prevalence_calibrated_binary(self, score_vec, batch_size):
+        target_rate = float(np.clip(self.y_positive_rate, 0.0, 1.0))
+        k_pos = int(round(target_rate * batch_size))
+        k_pos = max(0, min(batch_size, k_pos))
+
+        y_binary = np.zeros(batch_size, dtype=np.float32)
+        if k_pos > 0:
+            order = np.argsort(score_vec.reshape(-1))
+            y_binary[order[-k_pos:]] = 1.0
+        return y_binary.reshape(-1, 1)
+
+    def _predict_outcome_score_from_semantic(self, x_semantic_last, alpha_target):
+        x_np = x_semantic_last.detach().cpu().numpy()
+        alpha_np = alpha_target.detach().cpu().numpy().reshape(-1, 1)
+        features = np.concatenate([x_np, alpha_np], axis=1)
+
+        if self.outcome_model is not None:
+            return self.outcome_model.predict_proba(features)[:, 1]
+
+        return 0.15 * alpha_np.reshape(-1) + 0.05 * np.sum(x_np, axis=1)
+
+    def _predict_outcome_from_semantic(self, x_semantic_last, alpha_target):
+        score = self._predict_outcome_score_from_semantic(x_semantic_last, alpha_target)
+        return self._prevalence_calibrated_binary(score, x_semantic_last.shape[0])
         
-        return X_cf_semantic[:, -1, :], torch.randn(batch_size, 1, device=device)
+    def fit(self, dataloader, epochs, device, debug_mode=False):
+        logger.info(f"Training Causal-TabDiff {'(Debug)' if debug_mode else ''}...")
+        self.model.to(device)
+        self.model.train()
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3)
+        outcome_features = []
+        outcome_targets = []
+        
+        # Early Stopping Setup
+        patience = 10
+        best_loss = float('inf')
+        patience_counter = 0
+        best_model_state = None
+        
+        # When using early stopping, we can allow a higher upper bound
+        max_epochs = 300 if not debug_mode else epochs
+        
+        for epoch in range(max_epochs):
+            num_batches = len(dataloader) if not debug_mode else min(2, len(dataloader))
+            epoch_loss = 0
+            epoch_diff_loss = 0
+            log_every = 20
+            for i, batch in enumerate(dataloader):
+                if debug_mode and i >= 2: break
+                x = batch['x'].to(device)
+                alpha_tgt = batch['alpha_target'].to(device)
+                y = batch['y'].to(device)
+                if epoch == 0:
+                    outcome_features.append(self._pack_semantic_real_features(batch))
+                    outcome_targets.append(batch['y'].detach().cpu().numpy().reshape(-1))
+                
+                optimizer.zero_grad()
+                y_binary = (y > 0.5).float()
+                pos_count = float(y_binary.sum().item())
+                neg_count = float(y_binary.numel() - pos_count)
+                pos_weight_value = neg_count / max(1.0, pos_count) if pos_count > 0 else 1.0
+                pos_weight = torch.tensor([max(1.0, pos_weight_value)], device=device, dtype=x.dtype)
+
+                diff_loss, disc_loss, outcome_loss = self.model(
+                    x,
+                    alpha_tgt,
+                    y_target=y_binary,
+                    pos_weight=pos_weight,
+                    rank_loss_weight=self.outcome_rank_loss_weight,
+                    use_trajectory_risk_head=self.use_trajectory_risk_head,
+                    risk_smoothness_weight=self.risk_smoothness_weight,
+                    cf_consistency_weight=self.cf_consistency_weight,
+                    denoise_recon_weight=self.denoise_recon_weight,
+                    batch_moment_weight=self.batch_moment_weight,
+                )
+                loss = diff_loss + 0.5 * disc_loss + self.outcome_loss_weight * outcome_loss
+                loss.backward()
+                optimizer.step()
+                epoch_loss += loss.item()
+                epoch_diff_loss += diff_loss.item()
+                batch_idx = i + 1
+                if batch_idx % log_every == 0 or batch_idx == num_batches:
+                    logger.info(
+                        f"[Causal-TabDiff] Epoch {epoch + 1}/{epochs} - batch {batch_idx}/{num_batches}, "
+                        f"loss={loss.item():.6f}, diff={diff_loss.item():.6f}, disc={disc_loss.item():.6f}, "
+                        f"y={outcome_loss.item():.6f}, y_w={self.outcome_loss_weight:.2f}, rank_w={self.outcome_rank_loss_weight:.2f}"
+                    )
+            avg_loss = epoch_loss / max(1, num_batches)
+            logger.info(f"[Causal-TabDiff] Epoch {epoch + 1}/{epochs} - avg_loss={avg_loss:.6f}, batches={num_batches}")
+
+            avg_epoch_loss = epoch_loss / num_batches
+            avg_diff_loss = epoch_diff_loss / num_batches
+            logger.info(f"[Causal-TabDiff] Epoch {epoch + 1}/{max_epochs} Complete - Avg Loss: {avg_epoch_loss:.4f} (Diff: {avg_diff_loss:.4f})")
+            
+            # Check Early Stopping based on diff_loss
+            if avg_diff_loss < best_loss - 1e-4:
+                best_loss = avg_diff_loss
+                patience_counter = 0
+                import copy
+                best_model_state = copy.deepcopy(self.model.state_dict())
+            else:
+                patience_counter += 1
+                logger.info(f"[Causal-TabDiff] Early Stopping counter: {patience_counter}/{patience} (Best Diff: {best_loss:.4f})")
+                
+            if patience_counter >= patience:
+                logger.info(f"[Causal-TabDiff] Early Stop triggered at epoch {epoch + 1}! Restoring best model state.")
+                if best_model_state is not None:
+                    self.model.load_state_dict(best_model_state)
+                break
+
+        if outcome_features and outcome_targets:
+            outcome_x = np.concatenate(outcome_features, axis=0)
+            outcome_y = np.concatenate(outcome_targets, axis=0).astype(int)
+            self.y_positive_rate = float(np.mean(outcome_y > 0.5))
+            self.outcome_feature_dim = outcome_x.shape[1]
+
+            if len(np.unique(outcome_y)) >= 2:
+                try:
+                    from sklearn.ensemble import RandomForestClassifier
+
+                    self.outcome_model = RandomForestClassifier(
+                        class_weight='balanced_subsample',
+                        max_depth=5,
+                        n_estimators=100,
+                        random_state=42,
+                    )
+                    self.outcome_model.fit(outcome_x, outcome_y)
+                    logger.info(
+                        f"[Causal-TabDiff] outcome glue model fitted with N={outcome_x.shape[0]}, positive_rate={self.y_positive_rate:.4f}"
+                    )
+                except Exception as e:
+                    self.outcome_model = None
+                    logger.warning(f"[Causal-TabDiff] outcome glue model fallback triggered: {e}")
+            else:
+                self.outcome_model = None
+                logger.warning(
+                    f"[Causal-TabDiff] outcome glue model skipped because only one class observed in training slice; positive_rate={self.y_positive_rate:.4f}"
+                )
+
+    def sample(self, batch_size, alpha_target, device):
+        self.model.eval()
+        with torch.no_grad():
+            sampled = self.model.sample_with_guidance(
+                batch_size=batch_size,
+                alpha_target=alpha_target,
+                guidance_scale=self.sample_guidance_scale,
+                guidance_schedule=self.sample_guidance_schedule,
+                guidance_power=self.sample_guidance_power,
+            )
+
+        x_cf_semantic = self._decode_semantic_from_analog(sampled, device)
+        x_cf_semantic = torch.clamp(x_cf_semantic, min=-5.0, max=5.0)
+        glue_score = self._predict_outcome_score_from_semantic(x_cf_semantic[:, -1, :], alpha_target)
+        if self.sample_use_trajectory_risk:
+            model_score = self.model.predict_cumulative_risk(sampled, alpha_target).detach().cpu().numpy().reshape(-1)
+        else:
+            model_score = self.model.predict_outcome_proba(sampled, alpha_target).detach().cpu().numpy().reshape(-1)
+        model_w = self.sample_model_score_weight
+        glue_w = 1.0 - model_w
+        combined_score = glue_w * glue_score + model_w * model_score
+        y_cf = self._prevalence_calibrated_binary(combined_score, batch_size)
+        return x_cf_semantic[:, -1, :], torch.tensor(y_cf, dtype=torch.float32, device=device)
