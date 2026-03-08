@@ -1,15 +1,11 @@
 % Baseline Evaluation Results LaTeX Code
 \begin{table}[h]
 \centering
-\begin{tabular}{lccccccc}
+\begin{tabular}{lcccccccccc}
 \hline
-Model & ATE_Bias & Wasserstein & CMD & TSTR_AUC & TSTR_F1 & Params(M) & AvgInfer(ms/sample) \\
+Model & ATE_Bias & Wasserstein & CMD & TSTR_AUC & TSTR_PR_AUC & TSTR_F1 & TSTR_F1_RealPrev & TSTR_F1_FakePrev & Params(M) & AvgInfer(ms/sample) \\
 \hline
-CausalForest (Classic) & $0.0382 \pm 0.0110$ & $0.4781 \pm 0.0003$ & $0.5021 \pm 0.0000$ & $0.5890 \pm 0.0001$ & $0.0745 \pm 0.0000$ & $0.0264 \pm 0.0000$ & $8.8022 \pm 0.0174$ \\
-STaSy (ICLR 23) & $0.0061 \pm 0.0011$ & $0.0646 \pm 0.0192$ & $0.0005 \pm 0.0001$ & $0.5643 \pm 0.0076$ & $0.0685 \pm 0.0030$ & $5.3248 \pm 0.0000$ & $5.1995 \pm 0.1253$ \\
-TabSyn (ICLR 24) & $0.0007 \pm 0.0002$ & $0.0846 \pm 0.0122$ & $0.0048 \pm 0.0006$ & $0.5047 \pm 0.0075$ & $0.0552 \pm 0.0020$ & $21.2254 \pm 0.0000$ & $1.4031 \pm 0.0545$ \\
-TabDiff (ICLR 25) & $0.0012 \pm 0.0006$ & $0.1168 \pm 0.0047$ & $0.0043 \pm 0.0002$ & $0.4867 \pm 0.0166$ & $0.0515 \pm 0.0017$ & $15.9461 \pm 0.0000$ & $19.6851 \pm 0.1964$ \\
-TSDiff (ICLR 23) & $0.0009 \pm 0.0004$ & $1.7501 \pm 0.1827$ & $0.0091 \pm 0.0086$ & $0.4897 \pm 0.0238$ & $0.0513 \pm 0.0068$ & $0.2884 \pm 0.0000$ & $0.4101 \pm 0.0030$ \\
+Causal-TabDiff (Ours) & $1.2001 \pm 0.9797$ & $1017084583305029385999129509888.0000 \pm 2017372802315689228725269823488.0000$ & $0.4563 \pm 0.1054$ & $0.6339 \pm 0.0358$ & $0.1821 \pm 0.0314$ & $0.2325 \pm 0.0529$ & $0.2093 \pm 0.0153$ & $0.2053 \pm 0.0125$ & $0.0936 \pm 0.0000$ & $5.3665 \pm 0.0520$ \\
 \hline
 \end{tabular}
 \caption{Baseline Evaluation Results}

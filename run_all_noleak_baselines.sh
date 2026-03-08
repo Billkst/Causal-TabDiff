@@ -8,7 +8,7 @@ echo "Time: $(date)"
 echo "=========================================================="
 
 # Keys need to match the actual dictionary keys exactly
-MODELS=("CausalForest (Classic)" "STaSy (ICLR 23)" "TabSyn (ICLR 24)" "TabDiff (ICLR 25)" "TSDiff (ICLR 23)")
+MODELS=("CausalForest (Classic)" "STaSy (ICLR 23)" "TabSyn (ICLR 24)" "TabDiff (ICLR 25)" "TSDiff (ICLR 23)" "Causal-TabDiff (Ours)")
 
 for model in "${MODELS[@]}"; do
     echo ">>> Running ${model}..."

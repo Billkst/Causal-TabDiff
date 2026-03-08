@@ -1,0 +1,52 @@
+nohup: ignoring input
+2026-03-07 14:03:06,866 - INFO - Training Causal-TabDiff ...
+2026-03-07 14:03:09,358 - INFO - [Causal-TabDiff] Epoch 1/10 - batch 20/32, loss=1.992237, diff=1.570339, disc=0.214374, y=0.899175, y_w=0.35, rank_w=0.00
+2026-03-07 14:03:09,894 - INFO - [Causal-TabDiff] Epoch 1/10 - batch 32/32, loss=1.439546, diff=1.209115, disc=0.142774, y=0.454411, y_w=0.35, rank_w=0.00
+2026-03-07 14:03:09,896 - INFO - [Causal-TabDiff] Epoch 1/10 - avg_loss=3.629563, batches=32
+2026-03-07 14:03:10,901 - INFO - [Causal-TabDiff] Epoch 2/10 - batch 20/32, loss=1.176497, diff=1.040676, disc=0.026622, y=0.350029, y_w=0.35, rank_w=0.00
+2026-03-07 14:03:11,510 - INFO - [Causal-TabDiff] Epoch 2/10 - batch 32/32, loss=1.069153, diff=0.947655, disc=0.014682, y=0.326163, y_w=0.35, rank_w=0.00
+2026-03-07 14:03:11,512 - INFO - [Causal-TabDiff] Epoch 2/10 - avg_loss=1.231843, batches=32
+2026-03-07 14:03:12,489 - INFO - [Causal-TabDiff] Epoch 3/10 - batch 20/32, loss=1.017229, diff=0.907099, disc=0.010448, y=0.299731, y_w=0.35, rank_w=0.00
+2026-03-07 14:03:13,058 - INFO - [Causal-TabDiff] Epoch 3/10 - batch 32/32, loss=1.014091, diff=0.894555, disc=0.012227, y=0.324064, y_w=0.35, rank_w=0.00
+2026-03-07 14:03:13,060 - INFO - [Causal-TabDiff] Epoch 3/10 - avg_loss=1.074663, batches=32
+2026-03-07 14:03:14,011 - INFO - [Causal-TabDiff] Epoch 4/10 - batch 20/32, loss=0.973376, diff=0.852669, disc=0.012367, y=0.327210, y_w=0.35, rank_w=0.00
+2026-03-07 14:03:14,585 - INFO - [Causal-TabDiff] Epoch 4/10 - batch 32/32, loss=0.963935, diff=0.854282, disc=0.010015, y=0.298988, y_w=0.35, rank_w=0.00
+2026-03-07 14:03:14,586 - INFO - [Causal-TabDiff] Epoch 4/10 - avg_loss=0.991087, batches=32
+2026-03-07 14:03:15,541 - INFO - [Causal-TabDiff] Epoch 5/10 - batch 20/32, loss=0.893199, diff=0.788783, disc=0.007851, y=0.287117, y_w=0.35, rank_w=0.00
+2026-03-07 14:03:16,116 - INFO - [Causal-TabDiff] Epoch 5/10 - batch 32/32, loss=0.891552, diff=0.780364, disc=0.009668, y=0.303867, y_w=0.35, rank_w=0.00
+2026-03-07 14:03:16,117 - INFO - [Causal-TabDiff] Epoch 5/10 - avg_loss=0.938406, batches=32
+2026-03-07 14:03:17,068 - INFO - [Causal-TabDiff] Epoch 6/10 - batch 20/32, loss=0.875266, diff=0.754985, disc=0.009894, y=0.329527, y_w=0.35, rank_w=0.00
+2026-03-07 14:03:17,636 - INFO - [Causal-TabDiff] Epoch 6/10 - batch 32/32, loss=0.868930, diff=0.757645, disc=0.010940, y=0.302326, y_w=0.35, rank_w=0.00
+2026-03-07 14:03:17,637 - INFO - [Causal-TabDiff] Epoch 6/10 - avg_loss=0.895337, batches=32
+2026-03-07 14:03:18,587 - INFO - [Causal-TabDiff] Epoch 7/10 - batch 20/32, loss=0.825471, diff=0.708570, disc=0.008096, y=0.322436, y_w=0.35, rank_w=0.00
+2026-03-07 14:03:19,159 - INFO - [Causal-TabDiff] Epoch 7/10 - batch 32/32, loss=0.861730, diff=0.732427, disc=0.009431, y=0.355965, y_w=0.35, rank_w=0.00
+2026-03-07 14:03:19,160 - INFO - [Causal-TabDiff] Epoch 7/10 - avg_loss=0.860033, batches=32
+2026-03-07 14:03:20,134 - INFO - [Causal-TabDiff] Epoch 8/10 - batch 20/32, loss=0.854441, diff=0.747154, disc=0.009761, y=0.292588, y_w=0.35, rank_w=0.00
+2026-03-07 14:03:20,704 - INFO - [Causal-TabDiff] Epoch 8/10 - batch 32/32, loss=0.795318, diff=0.688614, disc=0.008620, y=0.292555, y_w=0.35, rank_w=0.00
+2026-03-07 14:03:20,705 - INFO - [Causal-TabDiff] Epoch 8/10 - avg_loss=0.835990, batches=32
+2026-03-07 14:03:21,658 - INFO - [Causal-TabDiff] Epoch 9/10 - batch 20/32, loss=0.836052, diff=0.713550, disc=0.010783, y=0.334603, y_w=0.35, rank_w=0.00
+2026-03-07 14:03:22,229 - INFO - [Causal-TabDiff] Epoch 9/10 - batch 32/32, loss=0.792828, diff=0.688317, disc=0.009820, y=0.284574, y_w=0.35, rank_w=0.00
+2026-03-07 14:03:22,231 - INFO - [Causal-TabDiff] Epoch 9/10 - avg_loss=0.807618, batches=32
+2026-03-07 14:03:23,183 - INFO - [Causal-TabDiff] Epoch 10/10 - batch 20/32, loss=0.758287, diff=0.649431, disc=0.008332, y=0.299114, y_w=0.35, rank_w=0.00
+2026-03-07 14:03:23,752 - INFO - [Causal-TabDiff] Epoch 10/10 - batch 32/32, loss=0.790653, diff=0.680070, disc=0.009852, y=0.301877, y_w=0.35, rank_w=0.00
+2026-03-07 14:03:23,753 - INFO - [Causal-TabDiff] Epoch 10/10 - avg_loss=0.784636, batches=32
+2026-03-07 14:03:35,921 - INFO - [Causal-TabDiff] outcome glue model fitted with N=8192, positive_rate=0.0321
+2026-03-07 14:03:38,642 - INFO - [Metrics] input shapes real_x=(4096, 4), fake_x=(4096, 4), real_y=(4096,), fake_y=(4096,)
+2026-03-07 14:03:38,643 - INFO - [Metrics] preprocess done in 0.00s
+2026-03-07 14:03:38,649 - INFO - [Metrics] fidelity (Wasserstein+CMD) done in 0.01s
+2026-03-07 14:03:38,710 - INFO - [Metrics] ATE done in 0.06s
+2026-03-07 14:03:38,710 - INFO - [Metrics] label dist fake(y=1:128, y=0:3968) real(y=1:113, y=0:3983)
+/home/UserData/miniconda/envs/causal_tabdiff/lib/python3.10/site-packages/xgboost/training.py:200: UserWarning: [14:03:38] WARNING: /__w/xgboost/xgboost/src/learner.cc:782: 
+Parameters: { "use_label_encoder" } are not used.
+
+  bst.update(dtrain, iteration=i, fobj=obj)
+2026-03-07 14:03:38,839 - INFO - [Metrics] prevalence-aware thresholds real_prev=0.976468, fake_prev=0.973614, f1_real_prev=0.053097, f1_fake_prev=0.047809, pr_auc=0.033150
+2026-03-07 14:03:38,839 - INFO - [Metrics] TSTR done in 0.13s
+2026-03-07 14:03:38,839 - INFO - [Metrics] total compute_metrics time 0.20s
+=== [1/1] v24_focal_hgb_champion ===
+hard_wins=0/5 table_all_win=False gate=False auc=0.539919 f1=0.055437 ate=0.012606
+Wrote V2 champion search report to logs/testing/causal_tabdiff_v24_champion_final.md
+best_config=v24_focal_hgb_champion
+best_hard_wins=0
+best_table_all_win=False
+best_formal_gate_pass=False
