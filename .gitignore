@@ -1,0 +1,26 @@
+# Logs and temporary outputs
+logs/
+checkpoints/
+outputs/
+reports/
+runs/
+nohup.out
+*.log
+*.pid
+
+# Python caches
+__pycache__/
+*.py[cod]
+*.class
+
+# Model weights and temporary files
+*.pt
+*.pth
+*.ckpt
+temp_*/
+
+# OS files
+.DS_Store
+
+# Archive (Keep local only, do not commit if using Git)
+# archive/
