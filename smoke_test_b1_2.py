@@ -53,7 +53,7 @@ loss_diff = outputs['diff_loss']
 loss_disc = outputs['disc_loss']
 
 traj_pred = outputs['trajectory']
-loss_traj = F.binary_cross_entropy(traj_pred * traj_mask, traj_target * traj_mask)
+loss_traj = model.compute_trajectory_loss(traj_pred, traj_target, traj_mask)
 
 risk_pred = outputs['risk_2year']
 loss_2year = F.binary_cross_entropy(risk_pred, y_2year)
@@ -87,7 +87,7 @@ for epoch in range(2):
         outputs = model(x, alpha_target)
         
         loss = (outputs['diff_loss'] + 0.5 * outputs['disc_loss'] + 
-                F.binary_cross_entropy(outputs['trajectory'] * traj_mask, traj_target * traj_mask) +
+                model.compute_trajectory_loss(outputs['trajectory'], traj_target, traj_mask) +
                 F.binary_cross_entropy(outputs['risk_2year'], y_2year))
         
         loss.backward()

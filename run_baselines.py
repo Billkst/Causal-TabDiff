@@ -1,3 +1,9 @@
+"""
+LEGACY - DO NOT USE FOR NEW EXPERIMENTS
+
+This file uses old data pipeline. For new experiments, use: run_baselines_landmark.py
+See: docs/reboot/LEGACY_ENTRYPOINTS.md
+"""
 import argparse
 import random
 import numpy as np

@@ -1,3 +1,11 @@
+"""
+LEGACY - DO NOT USE FOR NEW EXPERIMENTS
+
+This file uses pseudo-temporal logic and does not support real landmark-based short history.
+For new experiments, use: run_experiment_landmark.py
+
+See: docs/reboot/LEGACY_ENTRYPOINTS.md
+"""
 import argparse
 import torch
 import logging

@@ -1,3 +1,9 @@
+"""
+LEGACY - API PARTIALLY OUTDATED
+
+This smoke test uses old API. For current smoke test, use: smoke_test_b1_2.py
+See: docs/reboot/LEGACY_ENTRYPOINTS.md
+"""
 import sys
 import torch
 import numpy as np
