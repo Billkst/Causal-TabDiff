@@ -3,9 +3,9 @@ import torch.nn as nn
 from .causal_tabdiff import CausalTabDiff
 
 class CausalTabDiffTrajectory(nn.Module):
-    def __init__(self, t_steps, feature_dim, diffusion_steps=100, trajectory_len=7):
+    def __init__(self, t_steps, feature_dim, diffusion_steps=100, trajectory_len=7, cond_dim=1):
         super().__init__()
-        self.base_model = CausalTabDiff(t_steps, feature_dim, diffusion_steps)
+        self.base_model = CausalTabDiff(t_steps, feature_dim, cond_dim, diffusion_steps)
         self.trajectory_len = trajectory_len
         
         self.trajectory_head = nn.Sequential(
@@ -19,10 +19,11 @@ class CausalTabDiffTrajectory(nn.Module):
     def forward(self, x, alpha_target):
         diff_loss, disc_loss = self.base_model(x, alpha_target)
         
-        encoded = self.base_model.encoder(x)
-        h = encoded.mean(dim=1)
+        c_emb = self.base_model.cond_mlp(alpha_target)
+        h = self.base_model.block1(x, c_emb)
+        h_pooled = h.mean(dim=1)
         
-        trajectory_logits = self.trajectory_head(h)
+        trajectory_logits = self.trajectory_head(h_pooled)
         trajectory_probs = torch.sigmoid(trajectory_logits)
         
         risk_2year_logits = self.risk_2year_head(trajectory_probs)
