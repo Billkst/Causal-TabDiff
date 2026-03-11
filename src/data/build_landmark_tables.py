@@ -112,7 +112,7 @@ class LandmarkTableBuilder:
             abnormality_count=('sct_ab_num', 'count'),
             max_long_dia=('sct_long_dia', 'max'),
             max_perp_dia=('sct_perp_dia', 'max'),
-            has_spiculated=('sct_margins', lambda x: (x == 4).any() if len(x) > 0 else False)
+            has_spiculated=('sct_margins', lambda x: (x == 1).any() if len(x) > 0 else False)
         ).reset_index()
         
         abn_agg.to_pickle(self.output_dir / 'person_year_abnormality_summary.pkl')
@@ -174,9 +174,16 @@ class LandmarkTableBuilder:
                 y_2year = 1 if (pd.notna(cancyr) and cancyr > landmark and cancyr <= landmark + 2) else 0
                 
                 future_event_years = np.zeros(7, dtype=np.float32)
+                trajectory_valid_mask = np.ones(7, dtype=np.float32)
+                
+                max_observable_year = 7
+                valid_length = min(7, max_observable_year - landmark)
+                if valid_length < 7:
+                    trajectory_valid_mask[valid_length:] = 0
+                
                 if pd.notna(cancyr) and cancyr > landmark:
                     event_offset = int(cancyr - landmark - 1)
-                    if 0 <= event_offset < 7:
+                    if 0 <= event_offset < valid_length:
                         future_event_years[event_offset] = 1.0
                 
                 screen_hist = screen_agg[(screen_agg['pid'] == pid) & (screen_agg['study_yr'] <= landmark)]
@@ -193,17 +200,25 @@ class LandmarkTableBuilder:
                     screen_t = screen_hist[screen_hist['study_yr'] == t]
                     if len(screen_t) > 0:
                         sample[f'screen_t{t}_ctdxqual'] = screen_t['ctdxqual'].values[0]
+                        sample[f'screen_t{t}_kvp'] = screen_t['techpara_kvp'].values[0]
+                        sample[f'screen_t{t}_ma'] = screen_t['techpara_ma'].values[0]
+                        sample[f'screen_t{t}_fov'] = screen_t['techpara_fov'].values[0]
                     
                     abn_t = abn_hist[abn_hist['study_yr'] == t]
                     if len(abn_t) > 0:
                         sample[f'abn_t{t}_count'] = abn_t['abnormality_count'].values[0]
-                        sample[f'abn_t{t}_max_dia'] = abn_t['max_long_dia'].values[0]
+                        sample[f'abn_t{t}_max_long_dia'] = abn_t['max_long_dia'].values[0]
+                        sample[f'abn_t{t}_max_perp_dia'] = abn_t['max_perp_dia'].values[0]
+                        sample[f'abn_t{t}_has_spiculated'] = abn_t['has_spiculated'].values[0]
                     
                     change_t = change_hist[change_hist['study_yr'] == t]
                     if len(change_t) > 0:
                         sample[f'change_t{t}_has_growth'] = change_t['has_growth'].values[0]
+                        sample[f'change_t{t}_has_attn_change'] = change_t['has_attn_change'].values[0]
+                        sample[f'change_t{t}_change_count'] = change_t['change_count'].values[0]
                 
                 sample['trajectory_target'] = future_event_years
+                sample['trajectory_valid_mask'] = trajectory_valid_mask
                 samples.append(sample)
         
         unified = pd.DataFrame(samples)
