@@ -3,7 +3,7 @@ import torch
 from scipy.stats import wasserstein_distance
 
 
-def compute_ate_bias(model, dataloader, device, alpha_low=0.0, alpha_high=1.0):
+def compute_ate_estimate(model, dataloader, device, alpha_low=0.0, alpha_high=1.0):
     model.eval()
     ate_estimates = []
     
@@ -42,14 +42,37 @@ def compute_cmd(real_data, generated_data, n_moments=5):
     return cmd
 
 
-def evaluate_causal_and_distribution(model, dataloader, device, output_dir=None):
-    ate_bias = compute_ate_bias(model, dataloader, device)
+def evaluate_causal_and_distribution(model, dataloader_real, dataloader_generated, device, output_dir=None):
+    ate_estimate = compute_ate_estimate(model, dataloader_real, device)
+    
+    real_samples = []
+    gen_samples = []
+    
+    model.eval()
+    with torch.no_grad():
+        for batch in dataloader_real:
+            x = batch['x'].to(device)
+            real_samples.append(x.cpu().numpy())
+        
+        for batch in dataloader_generated:
+            x = batch['x'].to(device)
+            gen_samples.append(x.cpu().numpy())
+    
+    real_data = np.concatenate(real_samples, axis=0)
+    gen_data = np.concatenate(gen_samples, axis=0)
+    
+    wasserstein = compute_wasserstein(real_data, gen_data)
+    cmd = compute_cmd(real_data, gen_data)
     
     print(f"\n=== Causal & Distribution Metrics ===")
-    print(f"ATE Bias: {ate_bias:.4f}")
+    print(f"ATE Estimate: {ate_estimate:.4f}")
+    print(f"Wasserstein Distance: {wasserstein:.4f}")
+    print(f"CMD: {cmd:.4f}")
     
     metrics = {
-        'ate_bias': float(ate_bias)
+        'ate_estimate': float(ate_estimate),
+        'wasserstein_distance': float(wasserstein),
+        'cmd': float(cmd)
     }
     
     if output_dir:
