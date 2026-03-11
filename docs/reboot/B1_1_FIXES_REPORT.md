@@ -301,7 +301,61 @@ B1-2 的唯一目标:
 
 ---
 
-## 8. 附录: 关键代码片段
+## 8. B1-1 收尾修补 (2026-03-11)
+
+### 修补 1: 补全主建模表特征
+
+**修前问题**: 只写入了部分中间表特征,很多已聚合字段未进主表。
+
+**修后**: 补全所有中间表特征
+- Screen: ctdxqual, kvp, ma, fov (4 字段 × 3 时间点 = 12)
+- Abnormality: count, max_long_dia, max_perp_dia, has_spiculated (4 字段 × 3 时间点 = 12)
+- Change: has_growth, has_attn_change, change_count (3 字段 × 3 时间点 = 9)
+
+**最终字段数**: 43 个字段
+
+### 修补 2: 修正 has_spiculated 编码
+
+**修前问题**: 使用 `sct_margins == 4` 判断毛刺状,但数据字典显示正确编码是 1。
+
+**修后规则** (根据 dictionary_idc_ctab_idc-20210527.md):
+```
+sct_margins 编码:
+  1 = "Spiculated (Stellate)" - 毛刺状/星芒状 ← 正确编码
+  2 = "Smooth" - 光滑
+  3 = "Poorly defined" - 边界不清
+  9 = "Unable to determine" - 无法判断
+```
+
+**聚合规则**: `has_spiculated = (sct_margins == 1).any()`
+
+### 修补 3: 增加 trajectory_valid_mask
+
+**修前问题**: trajectory_target 固定 7 维,超出观察期的位置用 0 混同于"未发生事件"。
+
+**修后**: 增加 trajectory_valid_mask 标记有效长度
+```python
+trajectory_valid_mask = np.ones(7, dtype=np.float32)
+max_observable_year = 7
+valid_length = min(7, max_observable_year - landmark)
+if valid_length < 7:
+    trajectory_valid_mask[valid_length:] = 0
+```
+
+**示例**:
+- T0 样本: mask = [1,1,1,1,1,1,1] (全部可观察)
+- T1 样本: mask = [1,1,1,1,1,1,0] (最后 1 维超出观察期)
+- T2 样本: mask = [1,1,1,1,1,0,0] (最后 2 维超出观察期)
+
+**使用方式**:
+```python
+valid_trajectory = trajectory_target * trajectory_valid_mask
+loss = compute_loss(pred, valid_trajectory, mask=trajectory_valid_mask)
+```
+
+---
+
+## 9. 附录: 关键代码片段
 
 ### 8.1 cancyr 处理
 
