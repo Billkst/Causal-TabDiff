@@ -31,23 +31,36 @@ def is_leakage(col_name):
     return False
 
 class LandmarkTableBuilder:
-    def __init__(self, data_dir, output_dir, debug_mode=False):
+    def __init__(self, data_dir, output_dir, debug_mode=False, debug_n_persons=1000):
         self.data_dir = data_dir
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.debug_mode = debug_mode
-        self.nrows = 1000 if debug_mode else None
+        self.debug_n_persons = debug_n_persons
+        self.sampled_pids = None
         
     def load_raw_tables(self):
         """加载 5 张原始表"""
         base = os.path.join(self.data_dir, 'nlst.780.idc.delivery.052821')
         
         print("Loading raw tables...")
-        self.prsn = pd.read_csv(f'{base}/nlst_780_prsn_idc_20210527.csv', nrows=self.nrows)
-        self.screen = pd.read_csv(f'{base}/nlst_780_screen_idc_20210527.csv', nrows=self.nrows)
-        self.ctab = pd.read_csv(f'{base}/nlst_780_ctab_idc_20210527.csv', nrows=self.nrows)
-        self.ctabc = pd.read_csv(f'{base}/nlst_780_ctabc_idc_20210527.csv', nrows=self.nrows)
-        self.canc = pd.read_csv(f'{base}/nlst_780_canc_idc_20210527.csv', nrows=self.nrows)
+        self.prsn = pd.read_csv(f'{base}/nlst_780_prsn_idc_20210527.csv')
+        
+        if self.debug_mode:
+            self.sampled_pids = self.prsn['pid'].sample(n=min(self.debug_n_persons, len(self.prsn)), random_state=42)
+            self.prsn = self.prsn[self.prsn['pid'].isin(self.sampled_pids)]
+            print(f"  Debug mode: sampled {len(self.sampled_pids)} persons")
+        
+        self.screen = pd.read_csv(f'{base}/nlst_780_screen_idc_20210527.csv')
+        self.ctab = pd.read_csv(f'{base}/nlst_780_ctab_idc_20210527.csv')
+        self.ctabc = pd.read_csv(f'{base}/nlst_780_ctabc_idc_20210527.csv')
+        self.canc = pd.read_csv(f'{base}/nlst_780_canc_idc_20210527.csv')
+        
+        if self.debug_mode:
+            self.screen = self.screen[self.screen['pid'].isin(self.sampled_pids)]
+            self.ctab = self.ctab[self.ctab['pid'].isin(self.sampled_pids)]
+            self.ctabc = self.ctabc[self.ctabc['pid'].isin(self.sampled_pids)]
+            self.canc = self.canc[self.canc['pid'].isin(self.sampled_pids)]
         
         print(f"  prsn: {len(self.prsn)} rows, {len(self.prsn.columns)} cols")
         print(f"  screen: {len(self.screen)} rows, {len(self.screen.columns)} cols")
@@ -111,8 +124,8 @@ class LandmarkTableBuilder:
         print("\n[4/5] Building person_year_change_summary...")
         
         change_agg = self.ctabc.groupby(['pid', 'study_yr']).agg(
-            has_growth=('sct_ab_gwth', lambda x: (x == 1).any() if len(x) > 0 else False),
-            has_attn_change=('sct_ab_attn', lambda x: (x > 0).any() if len(x) > 0 else False),
+            has_growth=('sct_ab_gwth', lambda x: (x == 2).any() if len(x) > 0 else False),
+            has_attn_change=('sct_ab_attn', lambda x: (x == 2).any() if len(x) > 0 else False),
             change_count=('sct_ab_num', 'count')
         ).reset_index()
         
@@ -125,20 +138,20 @@ class LandmarkTableBuilder:
         print("\n[5/5] Building event_label_table...")
         
         all_pids = self.prsn[['pid']].copy()
-        all_pids['cancyr'] = self.prsn['cancyr'] if 'cancyr' in self.prsn.columns else 0
+        all_pids['cancyr'] = self.prsn['cancyr'] if 'cancyr' in self.prsn.columns else np.nan
         
         if len(self.canc) > 0 and 'pid' in self.canc.columns:
             canc_events = self.canc.groupby('pid')['study_yr'].min().reset_index()
             canc_events.columns = ['pid', 'cancyr_from_canc']
             all_pids = all_pids.merge(canc_events, on='pid', how='left')
-            all_pids['cancyr'] = all_pids['cancyr_from_canc'].fillna(all_pids['cancyr'])
+            all_pids['cancyr'] = all_pids['cancyr_from_canc'].combine_first(all_pids['cancyr'])
             all_pids.drop(columns=['cancyr_from_canc'], inplace=True)
-        
-        all_pids['cancyr'] = all_pids['cancyr'].fillna(0).astype(int)
         
         event_table = all_pids
         event_table.to_pickle(self.output_dir / 'event_label_table.pkl')
         print(f"  Saved: {len(event_table)} persons")
+        print(f"    Cancer cases: {event_table['cancyr'].notna().sum()}")
+        print(f"    No cancer: {event_table['cancyr'].isna().sum()}")
         return event_table
     
     def build_unified_landmark_table(self, baseline, screen_agg, abn_agg, change_agg, event_table):
@@ -146,16 +159,25 @@ class LandmarkTableBuilder:
         print("\n[FINAL] Building unified_person_landmark_table...")
         
         samples = []
+        excluded_count = 0
+        
         for _, person in baseline.iterrows():
             pid = person['pid']
             event_row = event_table[event_table['pid'] == pid]
-            cancyr = event_row['cancyr'].values[0] if len(event_row) > 0 else 0
+            cancyr = event_row['cancyr'].values[0] if len(event_row) > 0 else np.nan
             
             for landmark in [0, 1, 2]:
-                if cancyr > 0 and cancyr <= landmark:
+                if pd.notna(cancyr) and cancyr <= landmark:
+                    excluded_count += 1
                     continue
                 
-                y_2year = 1 if (cancyr > landmark and cancyr <= landmark + 2) else 0
+                y_2year = 1 if (pd.notna(cancyr) and cancyr > landmark and cancyr <= landmark + 2) else 0
+                
+                future_event_years = np.zeros(7, dtype=np.float32)
+                if pd.notna(cancyr) and cancyr > landmark:
+                    event_offset = int(cancyr - landmark - 1)
+                    if 0 <= event_offset < 7:
+                        future_event_years[event_offset] = 1.0
                 
                 screen_hist = screen_agg[(screen_agg['pid'] == pid) & (screen_agg['study_yr'] <= landmark)]
                 abn_hist = abn_agg[(abn_agg['pid'] == pid) & (abn_agg['study_yr'] <= landmark)]
@@ -181,11 +203,13 @@ class LandmarkTableBuilder:
                     if len(change_t) > 0:
                         sample[f'change_t{t}_has_growth'] = change_t['has_growth'].values[0]
                 
+                sample['trajectory_target'] = future_event_years
                 samples.append(sample)
         
         unified = pd.DataFrame(samples)
         unified.to_pickle(self.output_dir / 'unified_person_landmark_table.pkl')
         print(f"  Saved: {len(unified)} samples from {unified['pid'].nunique()} persons")
+        print(f"  Excluded: {excluded_count} samples (cancyr <= landmark)")
         print(f"  Positive rate: {unified['y_2year'].mean():.4f}")
         return unified
     

@@ -1,19 +1,19 @@
 {
-  "total_persons": 1000,
-  "total_samples": 2976,
+  "total_persons": 991,
+  "total_samples": 2957,
   "landmark_distribution": {
     "T0": {
-      "count": 1000,
-      "positive_rate": 0.017
+      "count": 991,
+      "positive_rate": 0.010090817356205853
     },
     "T1": {
-      "count": 993,
-      "positive_rate": 0.011077542799597181
+      "count": 985,
+      "positive_rate": 0.009137055837563452
     },
     "T2": {
-      "count": 983,
-      "positive_rate": 0.00508646998982706
+      "count": 981,
+      "positive_rate": 0.014271151885830785
     }
   },
-  "feature_dimensions": 15
+  "feature_dimensions": 17
 }
