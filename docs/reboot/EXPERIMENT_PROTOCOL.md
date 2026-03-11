@@ -533,3 +533,102 @@ python run_baselines.py --debug_mode --max_samples 100
 ## 14. Revision History
 
 - **v1.0 (2026-03-10)**: Initial protocol defining complete workflow
+
+## 15. B1-2: Model Interface Alignment (COMPLETED)
+
+**Status**: ✅ Completed (2026-03-11)  
+**Report**: See `docs/reboot/B1_2_SMOKE_TEST_REPORT.md`
+
+### 15.1 Data Module Update
+
+**实现**: `src/data/data_module_landmark.py` (完全重写)
+
+**核心改进**:
+- 直接使用 `unified_person_landmark_table.pkl`
+- 真实短历史提取（无 padding 伪造）
+- Pid-level split (60%/20%/20%)
+- 变长序列 collate function
+
+**API**:
+```python
+from src.data.data_module_landmark import get_dataloader
+
+loader = get_dataloader(
+    table_path='data/landmark_tables/unified_person_landmark_table.pkl',
+    split='train',
+    batch_size=32,
+    seed=42,
+    debug_n_persons=None  # None = full dataset
+)
+```
+
+**Batch 结构**:
+```python
+{
+    'x': (batch, 3, 15),  # padded to max_time=3
+    'y_2year': (batch, 1),
+    'trajectory_target': (batch, 7),
+    'trajectory_valid_mask': (batch, 7),
+    'landmark': (batch, 1),
+    'history_length': (batch, 1),
+    'pid': list[int]
+}
+```
+
+### 15.2 Model Update
+
+**实现**: `src/models/causal_tabdiff_trajectory.py`
+
+**修复**:
+- 添加 `cond_dim=1` 参数传递
+- 修复特征提取（使用 `block1` 而非不存在的 `encoder`）
+- 保持 trajectory + 2-year risk 双输出
+
+**输出**:
+```python
+{
+    'diff_loss': scalar,
+    'disc_loss': scalar,
+    'trajectory': (batch, 7),
+    'risk_2year': (batch, 1)
+}
+```
+
+### 15.3 Loss 定义
+
+```python
+total_loss = diff_loss + 0.5 * disc_loss + loss_traj + loss_2year
+
+# 其中:
+# loss_traj = BCE(trajectory * mask, target * mask)
+# loss_2year = BCE(risk_2year, y_2year)
+```
+
+### 15.4 Smoke Test
+
+**命令**:
+```bash
+conda activate causal_tabdiff
+python smoke_test_b1_2.py
+```
+
+**验证项**:
+- ✅ 数据加载
+- ✅ 模型前向
+- ✅ Loss 计算
+- ✅ 反向传播
+- ✅ 2 Epoch 训练
+- ✅ Validation
+- ✅ 最小指标输出
+
+### 15.5 当前主入口
+
+**训练**: `run_experiment_landmark.py`  
+**测试**: `smoke_test_b1_2.py`  
+**数据**: `src/data/data_module_landmark.py`  
+**模型**: `src/models/causal_tabdiff_trajectory.py`
+
+**Legacy 入口**: 见 `docs/reboot/LEGACY_ENTRYPOINTS.md`
+
+---
+

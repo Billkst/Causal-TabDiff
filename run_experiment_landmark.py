@@ -1,5 +1,6 @@
 import argparse
 import torch
+import torch.nn.functional as F
 import logging
 from src.data.data_module_landmark import get_landmark_dataloader
 from src.models.causal_tabdiff_trajectory import CausalTabDiffTrajectory

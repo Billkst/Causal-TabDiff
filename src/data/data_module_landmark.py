@@ -1,175 +1,219 @@
 """
-Landmark-based data module for 2-year risk prediction + risk trajectory generation.
-Replaces pseudo-temporal replication with genuine landmark sampling.
+Landmark-based data module using unified_person_landmark_table from B1-1.
+Implements pid-level split, missing value handling, and real short history.
 """
 import pandas as pd
 import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
+import pickle
 import os
-import json
 
-# Leakage blacklist
-BLACKLIST = [
-    'cancyr', 'candx_days', 'can_scr', 'canc_rpt_link',
-    'clinical_stag', 'path_stag', 'histology', 'grade',
-    'lesionsize', 'vital_status', 'fup_days'
-]
 
-class LandmarkNLSTDataset(Dataset):
+class LandmarkDataset(Dataset):
     """
-    Landmark-based NLST dataset.
-    Each sample = (person, landmark) with genuine history up to landmark.
+    Dataset using unified_person_landmark_table.pkl from B1-1.
+    Each sample = (person, landmark) with genuine short history.
     """
-    def __init__(self, data_dir, split='train', seed=42, debug_mode=False):
-        self.data_dir = data_dir
-        self.split = split
-        self.seed = seed
-        self.debug_mode = debug_mode
+    def __init__(self, df, landmark_to_idx):
+        self.df = df.reset_index(drop=True)
+        self.landmark_to_idx = landmark_to_idx
         
-        self._load_and_construct()
+        # Define feature columns (exclude bookkeeping and labels)
+        self.baseline_cols = ['baseline_age', 'baseline_gender', 'baseline_race', 'baseline_cigsmok']
         
-    def _load_raw_tables(self):
-        base = os.path.join(self.data_dir, 'nlst.780.idc.delivery.052821')
-        nrows = 100 if self.debug_mode else None
+        # Temporal features by time point
+        self.temporal_cols = {
+            't0': [
+                'screen_t0_ctdxqual', 'screen_t0_kvp', 'screen_t0_ma', 'screen_t0_fov',
+                'abn_t0_count', 'abn_t0_max_long_dia', 'abn_t0_max_perp_dia', 'abn_t0_has_spiculated',
+                'change_t0_has_growth', 'change_t0_has_attn_change', 'change_t0_change_count'
+            ],
+            't1': [
+                'screen_t1_ctdxqual', 'screen_t1_kvp', 'screen_t1_ma', 'screen_t1_fov',
+                'abn_t1_count', 'abn_t1_max_long_dia', 'abn_t1_max_perp_dia', 'abn_t1_has_spiculated',
+                'change_t1_has_growth', 'change_t1_has_attn_change', 'change_t1_change_count'
+            ],
+            't2': [
+                'screen_t2_ctdxqual', 'screen_t2_kvp', 'screen_t2_ma', 'screen_t2_fov',
+                'abn_t2_count', 'abn_t2_max_long_dia', 'abn_t2_max_perp_dia', 'abn_t2_has_spiculated',
+                'change_t2_has_growth', 'change_t2_has_attn_change', 'change_t2_change_count'
+            ]
+        }
         
-        self.prsn_df = pd.read_csv(f'{base}/nlst_780_prsn_idc_20210527.csv', nrows=nrows)
-        
-        for col in BLACKLIST:
-            if col in self.prsn_df.columns and col != 'cancyr':
-                self.prsn_df.drop(columns=[col], inplace=True)
-        
-        # For now, use prsn as main source (contains cancyr)
-        # TODO: Merge screen/ctab/ctabc for temporal features
-        
-    def _construct_landmark_samples(self):
-        """
-        Expand persons into (person, landmark) samples.
-        Exclude pre-existing cancer cases.
-        """
-        samples = []
-        
-        for _, row in self.prsn_df.iterrows():
-            pid = row['pid']
-            cancyr = row.get('cancyr', 0)
-            
-            for landmark in [0, 1, 2]:
-                # Exclusion: pre-existing cancer
-                if cancyr > 0 and cancyr <= landmark:
-                    continue
-                
-                # Construct 2-year label
-                y_2year = 1 if (cancyr > landmark and cancyr <= landmark + 2) else 0
-                
-                # Construct risk trajectory (T_max = 7)
-                risk_traj = self._construct_risk_trajectory(cancyr, landmark, T_max=7)
-                
-                # Extract features (baseline only for now)
-                features = self._extract_features(row, landmark)
-                
-                samples.append({
-                    'pid': pid,
-                    'landmark': landmark,
-                    'features': features,
-                    'y_2year': y_2year,
-                    'risk_trajectory': risk_traj,
-                    'cancyr': cancyr  # bookkeeping only
-                })
-        
-        return pd.DataFrame(samples)
-    
-    def _construct_risk_trajectory(self, cancyr, landmark, T_max=7):
-        traj_len = T_max
-        hazard = np.zeros(traj_len, dtype=np.float32)
-        
-        if cancyr > 0 and cancyr > landmark:
-            offset = int(cancyr - 1)
-            if 0 <= offset < traj_len:
-                hazard[offset] = 1.0
-        
-        return hazard
-    
-    def _extract_features(self, row, landmark):
-        safe_features = ['age', 'gender', 'bmi', 'cigsmok', 'copd']
-        features = np.zeros(len(safe_features), dtype=np.float32)
-        
-        for i, feat in enumerate(safe_features):
-            if feat in row.index:
-                val = row[feat]
-                features[i] = float(val) if not pd.isna(val) else 0.0
-        
-        return features
-    
-    def _split_data(self, samples_df):
-        """Split by person ID."""
-        unique_pids = samples_df['pid'].unique()
-        
-        # Stratify by outcome
-        pid_has_cancer = samples_df.groupby('pid')['cancyr'].first() > 0
-        
-        train_pids, test_pids = train_test_split(
-            unique_pids, test_size=0.2, random_state=self.seed,
-            stratify=pid_has_cancer
-        )
-        
-        train_pids, val_pids = train_test_split(
-            train_pids, test_size=0.25, random_state=self.seed,
-            stratify=pid_has_cancer[train_pids]
-        )
-        
-        # Assign splits
-        samples_df['split'] = 'train'
-        samples_df.loc[samples_df['pid'].isin(val_pids), 'split'] = 'val'
-        samples_df.loc[samples_df['pid'].isin(test_pids), 'split'] = 'test'
-        
-        return samples_df
-    
-    def _load_and_construct(self):
-        self._load_raw_tables()
-        
-        for col in self.prsn_df.columns:
-            if col in BLACKLIST and col != 'cancyr':
-                raise ValueError(f"LEAKAGE DETECTED: {col} in dataframe!")
-        
-        # Construct landmark samples
-        all_samples = self._construct_landmark_samples()
-        
-        # Split by person
-        all_samples = self._split_data(all_samples)
-        
-        # Filter to current split
-        self.samples = all_samples[all_samples['split'] == self.split].reset_index(drop=True)
-        
-        print(f"[{self.split}] Loaded {len(self.samples)} samples from {self.samples['pid'].nunique()} persons")
-        print(f"  Positive rate: {self.samples['y_2year'].mean():.3f}")
-    
     def __len__(self):
-        return len(self.samples)
+        return len(self.df)
     
     def __getitem__(self, idx):
-        row = self.samples.iloc[idx]
+        row = self.df.iloc[idx]
+        landmark = int(row['landmark'])
         
-        # For now, replicate features across time (minimal version)
-        # TODO: Replace with genuine temporal sequences
-        features = row['features']
-        history_len = row['landmark'] + 1
+        # Extract baseline features (always available)
+        baseline = row[self.baseline_cols].values.astype(np.float32)
         
-        # Pad to max length 3
-        x_history = np.zeros((3, len(features)), dtype=np.float32)
-        for t in range(history_len):
-            x_history[t] = features  # Replicate for now
+        # Extract temporal features based on landmark (real short history)
+        history = []
+        for t in range(landmark + 1):  # T0, T1, T2 -> 0, 1, 2
+            t_key = f't{t}'
+            temporal_feats = row[self.temporal_cols[t_key]].values
+            
+            # Convert boolean to float
+            temporal_feats = np.array([float(x) if isinstance(x, (bool, np.bool_)) else x 
+                                      for x in temporal_feats], dtype=np.float32)
+            
+            # Fill NaN with 0 (missing value strategy)
+            temporal_feats = np.nan_to_num(temporal_feats, nan=0.0)
+            
+            # Concatenate baseline + temporal for this time point
+            time_features = np.concatenate([baseline, temporal_feats])
+            history.append(time_features)
+        
+        # Stack into (time, features) array
+        x = np.stack(history, axis=0)  # Shape: (landmark+1, feature_dim)
+        
+        # Extract labels
+        y_2year = float(row['y_2year'])
+        trajectory_target = np.array(row['trajectory_target'], dtype=np.float32)
+        trajectory_valid_mask = np.array(row['trajectory_valid_mask'], dtype=np.float32)
         
         return {
-            'x': torch.tensor(x_history, dtype=torch.float32),
-            'y_2year': torch.tensor([row['y_2year']], dtype=torch.float32),
-            'risk_trajectory': torch.tensor(row['risk_trajectory'], dtype=torch.float32),
-            'alpha_target': torch.tensor([np.random.uniform(0.1, 0.9)], dtype=torch.float32),
-            'landmark': torch.tensor([row['landmark']], dtype=torch.long),
-            'history_length': torch.tensor([history_len], dtype=torch.long)
+            'x': torch.tensor(x, dtype=torch.float32),
+            'y_2year': torch.tensor([y_2year], dtype=torch.float32),
+            'trajectory_target': torch.tensor(trajectory_target, dtype=torch.float32),
+            'trajectory_valid_mask': torch.tensor(trajectory_valid_mask, dtype=torch.float32),
+            'landmark': torch.tensor([landmark], dtype=torch.long),
+            'history_length': torch.tensor([landmark + 1], dtype=torch.long),
+            'pid': int(row['pid'])
         }
 
-def get_landmark_dataloader(data_dir, split='train', batch_size=32, seed=42, debug_mode=False):
-    """Get dataloader for landmark-based dataset."""
-    dataset = LandmarkNLSTDataset(data_dir, split=split, seed=seed, debug_mode=debug_mode)
-    return DataLoader(dataset, batch_size=batch_size, shuffle=(split=='train'))
+
+def load_and_split_data(table_path, seed=42, debug_n_persons=None):
+    """
+    Load unified_person_landmark_table and perform pid-level split.
+    
+    Args:
+        table_path: Path to unified_person_landmark_table.pkl
+        seed: Random seed
+        debug_n_persons: If set, sample N persons for debugging
+    
+    Returns:
+        train_df, val_df, test_df, landmark_to_idx
+    """
+    df = pd.read_pickle(table_path)
+    
+    # Debug mode: sample persons
+    if debug_n_persons is not None:
+        unique_pids = df['pid'].unique()
+        np.random.seed(seed)
+        sampled_pids = np.random.choice(unique_pids, size=min(debug_n_persons, len(unique_pids)), replace=False)
+        df = df[df['pid'].isin(sampled_pids)].copy()
+    
+    # Pid-level split
+    unique_pids = df['pid'].unique()
+    
+    # Stratify by cancer status (any landmark has y_2year=1)
+    pid_has_cancer = df.groupby('pid')['y_2year'].max()
+    pid_has_cancer = pid_has_cancer.reindex(unique_pids).fillna(0).astype(int).values
+    
+    # Train/test split (80/20)
+    train_pids, test_pids = train_test_split(
+        unique_pids, 
+        test_size=0.2, 
+        random_state=seed,
+        stratify=pid_has_cancer
+    )
+    
+    # Train/val split (60/20 of total)
+    train_pid_set = set(train_pids)
+    train_cancer = np.array([pid_has_cancer[list(unique_pids).index(pid)] for pid in train_pids])
+    train_pids, val_pids = train_test_split(
+        train_pids,
+        test_size=0.25,  # 0.25 * 0.8 = 0.2
+        random_state=seed,
+        stratify=train_cancer
+    )
+    
+    # Split dataframes
+    train_df = df[df['pid'].isin(train_pids)].copy()
+    val_df = df[df['pid'].isin(val_pids)].copy()
+    test_df = df[df['pid'].isin(test_pids)].copy()
+    
+    # Create landmark mapping
+    landmark_to_idx = {0: 0, 1: 1, 2: 2}
+    
+    # Print split statistics
+    print(f"\n=== Pid-Level Split Statistics ===")
+    print(f"Train: {len(train_pids)} persons, {len(train_df)} samples, pos_rate={train_df['y_2year'].mean():.4f}")
+    print(f"Val:   {len(val_pids)} persons, {len(val_df)} samples, pos_rate={val_df['y_2year'].mean():.4f}")
+    print(f"Test:  {len(test_pids)} persons, {len(test_df)} samples, pos_rate={test_df['y_2year'].mean():.4f}")
+    
+    return train_df, val_df, test_df, landmark_to_idx
+
+
+def collate_fn(batch):
+    """
+    Custom collate function to handle variable-length sequences.
+    Pads x to max_time_steps=3.
+    """
+    max_time = 3
+    batch_size = len(batch)
+    feature_dim = batch[0]['x'].shape[1]
+    
+    x_padded = torch.zeros(batch_size, max_time, feature_dim, dtype=torch.float32)
+    y_2year = []
+    trajectory_target = []
+    trajectory_valid_mask = []
+    landmark = []
+    history_length = []
+    pids = []
+    
+    for i, sample in enumerate(batch):
+        seq_len = sample['x'].shape[0]
+        x_padded[i, :seq_len, :] = sample['x']
+        y_2year.append(sample['y_2year'])
+        trajectory_target.append(sample['trajectory_target'])
+        trajectory_valid_mask.append(sample['trajectory_valid_mask'])
+        landmark.append(sample['landmark'])
+        history_length.append(sample['history_length'])
+        pids.append(sample['pid'])
+    
+    return {
+        'x': x_padded,
+        'y_2year': torch.stack(y_2year),
+        'trajectory_target': torch.stack(trajectory_target),
+        'trajectory_valid_mask': torch.stack(trajectory_valid_mask),
+        'landmark': torch.stack(landmark),
+        'history_length': torch.stack(history_length),
+        'pid': pids
+    }
+
+
+def get_dataloader(table_path, split='train', batch_size=32, seed=42, debug_n_persons=None, num_workers=0):
+    """
+    Get dataloader for specified split.
+    
+    Args:
+        table_path: Path to unified_person_landmark_table.pkl
+        split: 'train', 'val', or 'test'
+        batch_size: Batch size
+        seed: Random seed
+        debug_n_persons: If set, use only N persons for debugging
+        num_workers: Number of dataloader workers
+    """
+    train_df, val_df, test_df, landmark_to_idx = load_and_split_data(table_path, seed, debug_n_persons)
+    
+    split_map = {'train': train_df, 'val': val_df, 'test': test_df}
+    df = split_map[split]
+    
+    dataset = LandmarkDataset(df, landmark_to_idx)
+    dataloader = DataLoader(
+        dataset, 
+        batch_size=batch_size, 
+        shuffle=(split == 'train'),
+        num_workers=num_workers,
+        pin_memory=True,
+        collate_fn=collate_fn
+    )
+    
+    return dataloader
