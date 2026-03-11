@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, precision_recall_curve, confusion_matrix
 from sklearn.calibration import calibration_curve
+from .decision_curve import plot_decision_curve
 import os
 
 
@@ -112,3 +113,4 @@ def generate_all_plots(y_true, y_pred_proba, y_pred_binary, output_dir):
     plot_confusion_matrix(y_true, y_pred_binary, os.path.join(output_dir, 'confusion_matrix.png'))
     plot_confusion_matrix(y_true, y_pred_binary, os.path.join(output_dir, 'confusion_matrix_normalized.png'), normalize=True)
     plot_calibration_curve(y_true, y_pred_proba, save_path=os.path.join(output_dir, 'calibration_plot.png'))
+    plot_decision_curve(y_true, y_pred_proba, save_path=os.path.join(output_dir, 'decision_curve.png'))

@@ -1,14 +1,46 @@
 import torch
 import numpy as np
-from src.data.data_module_landmark import get_dataloader
-from src.models.causal_tabdiff_trajectory import CausalTabDiffTrajectory
-from src.evaluation.metrics import compute_all_metrics, find_optimal_threshold
-from src.evaluation.plots import generate_all_plots
 import json
 import os
+from src.evaluation.metrics import compute_all_metrics, find_optimal_threshold
+from src.evaluation.plots import generate_all_plots
 
 
-def evaluate_model(model, dataloader, device, threshold=None):
+def evaluate_from_predictions(y_true, y_pred_proba, val_y_true=None, val_y_pred_proba=None, 
+                               output_dir=None, model_name='model'):
+    if val_y_true is not None and val_y_pred_proba is not None:
+        threshold, f1_val = find_optimal_threshold(val_y_true, val_y_pred_proba, metric='f1')
+        print(f"Optimal threshold: {threshold:.4f} (Val F1: {f1_val:.4f})")
+    else:
+        threshold = 0.5
+    
+    metrics = compute_all_metrics(y_true, y_pred_proba, threshold=threshold)
+    
+    print(f"\n=== {model_name} Metrics ===")
+    print(f"AUROC: {metrics['auroc']:.4f}")
+    print(f"AUPRC: {metrics['auprc']:.4f}")
+    print(f"F1: {metrics['f1']:.4f}")
+    print(f"Brier: {metrics['brier_score']:.4f}")
+    print(f"Calibration Intercept: {metrics['calibration_intercept']:.4f}")
+    print(f"Calibration Slope: {metrics['calibration_slope']:.4f}")
+    
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+        metrics_serializable = {k: float(v) if isinstance(v, (np.floating, np.integer)) else v 
+                               for k, v in metrics.items() if k != 'confusion_matrix'}
+        metrics_serializable['confusion_matrix'] = metrics['confusion_matrix'].tolist()
+        
+        with open(os.path.join(output_dir, f'{model_name}_metrics.json'), 'w') as f:
+            json.dump(metrics_serializable, f, indent=2)
+        
+        y_pred_binary = (y_pred_proba >= threshold).astype(int)
+        generate_all_plots(y_true, y_pred_proba, y_pred_binary, 
+                          os.path.join(output_dir, model_name))
+    
+    return metrics
+
+
+def get_ours_predictions(model, dataloader, device, alpha_target_value=0.5):
     model.eval()
     all_preds = []
     all_labels = []
@@ -17,7 +49,7 @@ def evaluate_model(model, dataloader, device, threshold=None):
         for batch in dataloader:
             x = batch['x'].to(device)
             y_2year = batch['y_2year'].to(device)
-            alpha_target = torch.rand(x.shape[0], 1).to(device) * 0.8 + 0.1
+            alpha_target = torch.full((x.shape[0], 1), alpha_target_value, device=device)
             
             outputs = model(x, alpha_target)
             risk_pred = outputs['risk_2year'].cpu().numpy()
@@ -29,21 +61,13 @@ def evaluate_model(model, dataloader, device, threshold=None):
     all_preds = np.concatenate(all_preds, axis=0).flatten()
     all_labels = np.concatenate(all_labels, axis=0).flatten().astype(int)
     
-    if threshold is None:
-        threshold = 0.5
-    
-    y_pred_binary = (all_preds >= threshold).astype(int)
-    
-    return all_labels, all_preds, y_pred_binary
+    return all_labels, all_preds
 
 
-def run_evaluation(model_path, table_path, output_dir, seed=42, debug_n_persons=None):
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+def evaluate_ours_model(model_path, dataloader_val, dataloader_test, device, output_dir, alpha_target_value=0.5):
+    from src.models.causal_tabdiff_trajectory import CausalTabDiffTrajectory
     
-    val_loader = get_dataloader(table_path, 'val', batch_size=32, seed=seed, debug_n_persons=debug_n_persons)
-    test_loader = get_dataloader(table_path, 'test', batch_size=32, seed=seed, debug_n_persons=debug_n_persons)
-    
-    sample_batch = next(iter(val_loader))
+    sample_batch = next(iter(dataloader_val))
     t_steps = sample_batch['x'].shape[1]
     feature_dim = sample_batch['x'].shape[2]
     trajectory_len = sample_batch['trajectory_target'].shape[1]
@@ -53,59 +77,40 @@ def run_evaluation(model_path, table_path, output_dir, seed=42, debug_n_persons=
     if os.path.exists(model_path):
         model.load_state_dict(torch.load(model_path, map_location=device))
     
-    print("Evaluating on validation set...")
-    val_y_true, val_y_pred, _ = evaluate_model(model, val_loader, device)
+    val_y_true, val_y_pred = get_ours_predictions(model, dataloader_val, device, alpha_target_value)
+    test_y_true, test_y_pred = get_ours_predictions(model, dataloader_test, device, alpha_target_value)
     
-    print("Finding optimal threshold...")
-    threshold, f1_val = find_optimal_threshold(val_y_true, val_y_pred, metric='f1')
-    print(f"Optimal threshold: {threshold:.4f} (Val F1: {f1_val:.4f})")
-    
-    print("Evaluating on test set...")
-    test_y_true, test_y_pred, test_y_binary = evaluate_model(model, test_loader, device, threshold=threshold)
-    
-    print("Computing metrics...")
-    metrics = compute_all_metrics(test_y_true, test_y_pred, threshold=threshold)
-    
-    print("\n=== Test Set Metrics ===")
-    print(f"AUROC: {metrics['auroc']:.4f}")
-    print(f"AUPRC: {metrics['auprc']:.4f}")
-    print(f"F1: {metrics['f1']:.4f}")
-    print(f"Precision: {metrics['precision']:.4f}")
-    print(f"Recall: {metrics['recall']:.4f}")
-    print(f"Specificity: {metrics['specificity']:.4f}")
-    print(f"NPV: {metrics['npv']:.4f}")
-    print(f"Accuracy: {metrics['accuracy']:.4f}")
-    print(f"Balanced Accuracy: {metrics['balanced_accuracy']:.4f}")
-    print(f"MCC: {metrics['mcc']:.4f}")
-    print(f"Brier Score: {metrics['brier_score']:.4f}")
-    print(f"Calibration Intercept: {metrics['calibration_intercept']:.4f}")
-    print(f"Calibration Slope: {metrics['calibration_slope']:.4f}")
-    print(f"Threshold: {metrics['threshold']:.4f}")
-    print(f"\nConfusion Matrix:\n{metrics['confusion_matrix']}")
-    
-    os.makedirs(output_dir, exist_ok=True)
-    
-    metrics_serializable = {k: float(v) if isinstance(v, (np.floating, np.integer)) else v 
-                           for k, v in metrics.items() if k != 'confusion_matrix'}
-    metrics_serializable['confusion_matrix'] = metrics['confusion_matrix'].tolist()
-    
-    with open(os.path.join(output_dir, 'metrics.json'), 'w') as f:
-        json.dump(metrics_serializable, f, indent=2)
-    
-    print("\nGenerating plots...")
-    generate_all_plots(test_y_true, test_y_pred, test_y_binary, output_dir)
-    
-    print(f"\nResults saved to: {output_dir}")
+    return evaluate_from_predictions(test_y_true, test_y_pred, val_y_true, val_y_pred, 
+                                    output_dir, model_name='ours')
 
 
 if __name__ == '__main__':
     import argparse
+    from src.data.data_module_landmark import get_dataloader
+    
     parser = argparse.ArgumentParser()
+    parser.add_argument('--model_type', type=str, required=True, choices=['ours', 'baseline'])
     parser.add_argument('--model_path', type=str, default='checkpoints/model.pt')
+    parser.add_argument('--predictions_file', type=str, default=None)
     parser.add_argument('--table_path', type=str, default='data/landmark_tables/unified_person_landmark_table.pkl')
     parser.add_argument('--output_dir', type=str, default='results/evaluation')
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--debug_n_persons', type=int, default=None)
+    parser.add_argument('--alpha_target', type=float, default=0.5)
     args = parser.parse_args()
     
-    run_evaluation(args.model_path, args.table_path, args.output_dir, args.seed, args.debug_n_persons)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
+    if args.model_type == 'ours':
+        val_loader = get_dataloader(args.table_path, 'val', batch_size=32, seed=args.seed, debug_n_persons=args.debug_n_persons)
+        test_loader = get_dataloader(args.table_path, 'test', batch_size=32, seed=args.seed, debug_n_persons=args.debug_n_persons)
+        evaluate_ours_model(args.model_path, val_loader, test_loader, device, args.output_dir, args.alpha_target)
+    
+    elif args.model_type == 'baseline':
+        if args.predictions_file is None:
+            raise ValueError("--predictions_file required for baseline")
+        
+        data = np.load(args.predictions_file)
+        evaluate_from_predictions(data['test_y_true'], data['test_y_pred'], 
+                                 data.get('val_y_true'), data.get('val_y_pred'),
+                                 args.output_dir, model_name=data.get('model_name', 'baseline'))
