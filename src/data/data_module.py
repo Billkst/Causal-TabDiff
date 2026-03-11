@@ -1,3 +1,10 @@
+"""
+LEGACY - DO NOT USE FOR NEW EXPERIMENTS
+
+This module uses pseudo-temporal logic and does not use B1-1 unified_person_landmark_table.
+For new experiments, use: src/data/data_module_landmark.py
+See: docs/reboot/LEGACY_ENTRYPOINTS.md
+"""
 import pandas as pd
 import numpy as np
 import torch
