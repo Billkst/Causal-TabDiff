@@ -25,30 +25,87 @@ This document defines the complete experimental workflow from data construction 
 
 **Output**: Pandas DataFrames with validated schemas
 
-### 2.2 Stage 2: Intermediate Table Construction
+### 2.2 Stage 2: Intermediate Table Construction (B1-1 IMPLEMENTED)
 
-**Person Baseline Table**:
+**实现**: `src/data/build_landmark_tables.py`
+
+**1. person_baseline_table** (from prsn):
 ```
-Columns: pid, age, gender, cigsmok, bmi, copd, fhx_lung_cancer, ...
+Columns: pid, age, gender, race, ethnic, bmi, cigsmok, smokeage, smokeyr, 
+         cigsperday, smokeday, smokequit, copd, emphysema, chronic_bronchitis, 
+         fhx_lung_cancer, prior_cancer
 Grain: One row per person
+Output: data/landmark_tables/person_baseline_table.pkl
 ```
 
-**Person-Year Screening Summary**:
+**2. person_year_screening_summary** (from screen):
 ```
-Columns: pid, study_yr, screening_occurred, ct_quality, ...
-Grain: One row per (person, year) for years with screening
-```
-
-**Person-Year Abnormality Summary**:
-```
-Columns: pid, study_yr, num_nodules, max_nodule_size, has_spiculation, ...
-Grain: One row per (person, year) with aggregated nodule features
+Columns: pid, study_yr, ctdxqual, techpara_kvp, techpara_ma, techpara_fov
+Grain: One row per (person, year)
+Aggregation: groupby(['pid', 'study_yr']).agg({'ctdxqual': 'first', ...})
+Output: data/landmark_tables/person_year_screening_summary.pkl
 ```
 
-**Person-Year Change Summary**:
+**3. person_year_abnormality_summary** (from ctab):
 ```
-Columns: pid, study_yr, nodule_growth_detected, new_nodules, ...
-Grain: One row per (person, year) with temporal change features
+Columns: pid, study_yr, abnormality_count, max_long_dia, max_perp_dia, has_spiculated
+Grain: One row per (person, year)
+Aggregation: groupby(['pid', 'study_yr']).agg(
+    abnormality_count=('sct_ab_num', 'count'),
+    max_long_dia=('sct_long_dia', 'max'),
+    has_spiculated=('sct_margins', lambda x: (x == 4).any())
+)
+Output: data/landmark_tables/person_year_abnormality_summary.pkl
+```
+
+**4. person_year_change_summary** (from ctabc):
+```
+Columns: pid, study_yr, has_growth, has_attn_change, change_count
+Grain: One row per (person, year)
+Aggregation: groupby(['pid', 'study_yr']).agg(
+    has_growth=('sct_ab_gwth', lambda x: (x == 1).any()),
+    has_attn_change=('sct_ab_attn', lambda x: (x > 0).any())
+)
+Output: data/landmark_tables/person_year_change_summary.pkl
+```
+
+**5. event_label_table** (from prsn + canc):
+```
+Columns: pid, cancyr
+Grain: One row per person
+Logic: Merge prsn.cancyr with canc.study_yr (first event), cancyr=0 means no cancer
+Output: data/landmark_tables/event_label_table.pkl
+```
+
+### 2.3 Stage 3: Unified Master Table Construction (B1-1 IMPLEMENTED)
+
+**实现**: `src/data/build_landmark_tables.py::build_unified_landmark_table()`
+
+**unified_person_landmark_table**:
+```
+Grain: One row per (person, landmark)
+Landmarks: {0, 1, 2}
+Exclusion: cancyr > 0 and cancyr <= landmark
+Label: y_2year = 1 if (cancyr > landmark and cancyr <= landmark + 2) else 0
+Temporal filtering: All features from study_yr <= landmark only
+Output: data/landmark_tables/unified_person_landmark_table.pkl
+```
+
+**真实短历史**:
+- T0 样本: 只包含 T0 时间点的特征
+- T1 样本: 包含 T0 + T1 时间点的特征
+- T2 样本: 包含 T0 + T1 + T2 时间点的特征
+
+**字段结构**:
+- pid, landmark, y_2year, cancyr (bookkeeping)
+- baseline_*: 16 个基线特征
+- screen_t{0,1,2}_*: 每个时间点的筛查特征
+- abn_t{0,1,2}_*: 每个时间点的异常特征
+- change_t{0,1,2}_*: 每个时间点的变化特征
+
+**运行命令**:
+```bash
+python src/data/build_landmark_tables.py
 ```
 
 **Event/Label Table**:
