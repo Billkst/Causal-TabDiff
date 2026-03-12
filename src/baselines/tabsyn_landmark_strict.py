@@ -33,12 +33,12 @@ class TabSynLandmarkStrictWrapper:
         
         # Stage 1: VAE pretraining
         self.vae_model = Model_VAE(
-            num_continuous=self.total_dim,
-            num_categories=None,
+            num_layers=2,
+            d_numerical=self.total_dim,
+            categories=[],
             d_token=64,
             n_head=1,
-            factor=32,
-            num_layers=2
+            factor=32
         ).to(device)
         
         vae_optimizer = torch.optim.Adam(self.vae_model.parameters(), lr=1e-3)

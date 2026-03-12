@@ -32,11 +32,10 @@ class TabDiffLandmarkStrictWrapper:
         
         # Denoise network
         denoise_fn = UniModMLP(
-            num_numerical_features=self.total_dim,
-            num_classes=np.array([]),
-            d_in=self.total_dim,
-            d_layers=[256, 512, 512, 256],
-            dropout=0.0
+            d_numerical=self.total_dim,
+            categories=[],
+            num_layers=4,
+            d_token=256
         ).to(device)
         
         # Unified continuous-time diffusion

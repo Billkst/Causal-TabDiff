@@ -41,6 +41,8 @@ class STaSyLandmarkWrapper:
         config.model.hidden_dims = (256, 512, 512, 256)
         config.model.sigma_min = 0.01
         config.model.sigma_max = 10.
+        config.model.activation = "swish"
+        config.model.num_scales = 1000
         
         config.optim = ml_collections.ConfigDict()
         config.optim.optimizer = 'Adam'
