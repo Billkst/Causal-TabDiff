@@ -44,25 +44,20 @@ class iTransformerWrapper(nn.Module):
         self.model = iTransformerModel(self.config)
     
     def forward(self, x, padding_mask=None):
-        """
-        Args:
-            x: (batch, seq_len, features)
-            padding_mask: (batch, seq_len) - optional
-        Returns:
-            classification: (batch, num_class)
-            forecast: (batch, pred_len, 1)
-        """
         if self.task == 'classification':
             return self.model.classification(x, padding_mask)
         else:
-            return self.model.forecast(x, None, None, None)
+            output = self.model.forecast(x, None, None, None)
+            if len(output.shape) == 3:
+                return output.squeeze(-1)
+            return output
 
 
 class TimeXerWrapper(nn.Module):
     """TimeXer wrapper with exogenous variable support."""
     
     def __init__(self, seq_len, enc_in, exog_in, task='classification', num_class=2, pred_len=6, 
-                 d_model=128, n_heads=4, e_layers=2, patch_len=4):
+                 d_model=128, n_heads=4, e_layers=2, patch_len=1):
         super().__init__()
         self.task = task
         self.seq_len = seq_len
@@ -86,23 +81,22 @@ class TimeXerWrapper(nn.Module):
             use_norm=True,
             activation='gelu',
             output_attention=False,
-            ex_dim=exog_in
+            ex_dim=exog_in,
+            features='M',
+            embed='timeF',
+            freq='h',
+            factor=3
         )
         self.model = TimeXerModel(self.config)
     
     def forward(self, x_enc, x_mark_enc=None):
-        """
-        Args:
-            x_enc: (batch, seq_len, enc_in)
-            x_mark_enc: (batch, seq_len, exog_in) - exogenous variables
-        Returns:
-            classification: (batch, num_class)
-            forecast: (batch, pred_len, 1)
-        """
         if x_mark_enc is None:
             x_mark_enc = torch.zeros(x_enc.shape[0], x_enc.shape[1], self.exog_in, device=x_enc.device)
         
         if self.task == 'classification':
             return self.model.classification(x_enc, x_mark_enc)
         else:
-            return self.model.forecast(x_enc, x_mark_enc, None, None)
+            output = self.model.forecast(x_enc, x_mark_enc, None, None)
+            if len(output.shape) == 3:
+                return output.squeeze(-1)
+            return output
