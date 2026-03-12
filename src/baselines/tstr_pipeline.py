@@ -29,13 +29,14 @@ class TSTRPipeline:
         print(f"[TSTR] 生成模型训练完成")
     
     def generate_synthetic_data(self, n_samples, device):
-        """生成合成训练数据"""
+        """生成合成训练数据 - 联合生成 (X, Y)"""
         print(f"[TSTR] 生成 {n_samples} 个合成样本...")
-        synthetic_data = self.gen_model.sample(n_samples, device)
-        print(f"[TSTR] 合成数据生成完成，shape={synthetic_data.shape}")
-        return synthetic_data
+        # 所有 generative baselines 都返回 (X_cf, Y_cf)
+        X_synthetic, Y_synthetic = self.gen_model.sample(n_samples, alpha_target=None, device=device)
+        print(f"[TSTR] 合成数据生成完成，X shape={X_synthetic.shape}, Y shape={Y_synthetic.shape}")
+        return X_synthetic, Y_synthetic
     
-    def train_downstream_classifier(self, X_synthetic, y_synthetic):
+    def train_downstream_classifier(self, X_synthetic, Y_synthetic):
         """在合成数据上训练下游分类器"""
         print(f"[TSTR] 训练下游分类器 ({self.classifier_type})...")
         
@@ -52,8 +53,15 @@ class TSTRPipeline:
             raise ValueError(f"不支持的分类器类型: {self.classifier_type}")
         
         # Flatten features
-        X_flat = X_synthetic.reshape(X_synthetic.shape[0], -1)
-        self.classifier.fit(X_flat, y_synthetic)
+        if len(X_synthetic.shape) == 3:
+            X_flat = X_synthetic.reshape(X_synthetic.shape[0], -1)
+        else:
+            X_flat = X_synthetic
+        
+        y_flat = Y_synthetic.flatten() if len(Y_synthetic.shape) > 1 else Y_synthetic
+        
+        print(f"[TSTR] 训练数据: X shape={X_flat.shape}, Y shape={y_flat.shape}, Y positive rate={y_flat.mean():.4f}")
+        self.classifier.fit(X_flat, y_flat)
         print(f"[TSTR] 下游分类器训练完成")
     
     def predict(self, X_real):

@@ -58,19 +58,13 @@ def main():
     print(f"\n[TSTR] Step 1: 训练生成模型 ({args.gen_epochs} epochs)", flush=True)
     pipeline.train_generative_model(train_loader, args.gen_epochs, device)
     
-    # Step 2: Generate synthetic data
+    # Step 2: Generate synthetic data (联合生成 X 和 Y)
     print(f"\n[TSTR] Step 2: 生成合成数据 (N={args.n_synthetic})", flush=True)
-    X_synthetic = pipeline.generate_synthetic_data(args.n_synthetic, device)
-    
-    # Extract real training labels
-    X_train, y_train = extract_features_and_labels(train_loader, device)
-    
-    # Use synthetic features with real label distribution
-    y_synthetic = np.random.choice(y_train, size=args.n_synthetic, replace=True)
+    X_synthetic, Y_synthetic = pipeline.generate_synthetic_data(args.n_synthetic, device)
     
     # Step 3: Train downstream classifier
     print(f"\n[TSTR] Step 3: 训练下游分类器 (XGBoost)", flush=True)
-    pipeline.train_downstream_classifier(X_synthetic, y_synthetic)
+    pipeline.train_downstream_classifier(X_synthetic, Y_synthetic)
     
     # Step 4: Evaluate on real test data
     print(f"\n[TSTR] Step 4: 在真实测试集上评估", flush=True)
