@@ -47,3 +47,26 @@ class TSDiffLandmarkWrapper:
         Y_syn = samples[:, -1:]
         
         return X_syn, Y_syn
+    
+    def predict(self, df):
+        """Generate predictions for layer1 2-year risk"""
+        if not self.fitted:
+            raise ValueError("Model not fitted")
+        
+        n_samples = len(df)
+        device = next(self.model.parameters()).device
+        
+        # Generate samples
+        X_syn, Y_syn = self.sample(n_samples, device)
+        
+        # Return predictions as probabilities
+        return torch.sigmoid(Y_syn).cpu().numpy().flatten()
+    
+    def predict(self, df):
+        if not self.fitted:
+            raise ValueError("Model not fitted")
+        
+        n_samples = len(df)
+        device = next(self.model.parameters()).device
+        X_syn, Y_syn = self.sample(n_samples, device)
+        return torch.sigmoid(Y_syn).cpu().numpy().flatten()
