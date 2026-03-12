@@ -189,6 +189,18 @@ def collate_fn(batch):
     }
 
 
+def create_dataloaders(train_df, val_df, test_df, landmark_to_idx, batch_size=32, num_workers=0):
+    train_dataset = LandmarkDataset(train_df, landmark_to_idx)
+    val_dataset = LandmarkDataset(val_df, landmark_to_idx)
+    test_dataset = LandmarkDataset(test_df, landmark_to_idx)
+    
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn, num_workers=num_workers)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_fn, num_workers=num_workers)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_fn, num_workers=num_workers)
+    
+    return train_loader, val_loader, test_loader
+
+
 def get_dataloader(table_path, split='train', batch_size=32, seed=42, debug_n_persons=None, num_workers=0):
     """
     Get dataloader for specified split.
