@@ -63,6 +63,9 @@ class TabSynLandmarkStrictWrapper:
         # Stage 2: Diffusion training with EDM Loss
         denoise_fn = MLPDiffusion(self.total_dim, dim_t=128).to(device)
         self.diffusion_model = Model(denoise_fn, self.total_dim).to(device)
+        self.diffusion_model.denoise_fn_D.sigma_min = 0.002
+        self.diffusion_model.denoise_fn_D.sigma_max = 80.0
+        self.diffusion_model.denoise_fn_D.round_sigma = lambda x: x
         
         diff_optimizer = torch.optim.Adam(self.diffusion_model.parameters(), lr=1e-3)
         diff_epochs = epochs - vae_epochs
@@ -90,7 +93,7 @@ class TabSynLandmarkStrictWrapper:
         if self.diffusion_model is not None:
             self.diffusion_model.eval()
         with torch.no_grad():
-            samples = sample(self.diffusion_model, n_samples, self.total_dim, device)
+            samples = sample(self.diffusion_model.denoise_fn_D, n_samples, self.total_dim, device=device)
             X_syn = samples[:, :-1].reshape(n_samples, self.seq_len, self.feature_dim)
             Y_syn = (samples[:, -1:] > 0).float()
             return X_syn, Y_syn
