@@ -38,7 +38,8 @@ class TabSynLandmarkStrictWrapper:
             categories=[],
             d_token=64,
             n_head=1,
-            factor=32
+            factor=32,
+            bias=True
         ).to(device)
         
         vae_optimizer = torch.optim.Adam(self.vae_model.parameters(), lr=1e-3)
@@ -52,9 +53,9 @@ class TabSynLandmarkStrictWrapper:
                 xy = torch.cat([x_flat, y], dim=1)
                 
                 vae_optimizer.zero_grad()
-                recon, mu, logvar = self.vae_model(xy, None)
-                recon_loss = nn.functional.mse_loss(recon, xy)
-                kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp()) / xy.shape[0]
+                recon_x_num, recon_x_cat, mu_z, std_z = self.vae_model(xy, None)
+                recon_loss = nn.functional.mse_loss(recon_x_num, xy)
+                kl_loss = -0.5 * torch.sum(1 + std_z - mu_z.pow(2) - std_z.exp()) / xy.shape[0]
                 loss = recon_loss + 0.001 * kl_loss
                 loss.backward()
                 vae_optimizer.step()
@@ -64,7 +65,6 @@ class TabSynLandmarkStrictWrapper:
         self.diffusion_model = Model(denoise_fn, self.total_dim).to(device)
         
         diff_optimizer = torch.optim.Adam(self.diffusion_model.parameters(), lr=1e-3)
-        edm_loss_fn = EDMLoss()
         diff_epochs = epochs - vae_epochs
         
         for epoch in range(diff_epochs):
@@ -75,7 +75,7 @@ class TabSynLandmarkStrictWrapper:
                 xy = torch.cat([x_flat, y], dim=1)
                 
                 diff_optimizer.zero_grad()
-                loss = edm_loss_fn(self.diffusion_model, xy)
+                loss = self.diffusion_model(xy)
                 loss.backward()
                 diff_optimizer.step()
         
@@ -87,7 +87,8 @@ class TabSynLandmarkStrictWrapper:
         
         from tabsyn_core.diffusion_utils import sample
         
-        self.diffusion_model.eval()
+        if self.diffusion_model is not None:
+            self.diffusion_model.eval()
         with torch.no_grad():
             samples = sample(self.diffusion_model, n_samples, self.total_dim, device)
             X_syn = samples[:, :-1].reshape(n_samples, self.seq_len, self.feature_dim)
