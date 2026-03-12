@@ -1,5 +1,18 @@
 """
-TabSyn Landmark Wrapper - 最小化重写
+TabSyn-Inspired Simplified VAE Wrapper
+
+⚠️ 实现完整度: 15-20%
+⚠️ 类型: 简化代理版本 (Simplified Proxy)
+⚠️ 不可作为原始 TabSyn baseline 直接宣称
+
+缺失组件:
+- Tokenizer (混合数值/类别嵌入)
+- MultiheadAttention
+- Diffusion 阶段 (两阶段训练)
+- EDM Loss
+
+仅用于快速原型验证，不适合正式 baseline 对比。
+如需正式 TabSyn baseline，请实现完整架构。
 """
 import torch
 import torch.nn as nn
