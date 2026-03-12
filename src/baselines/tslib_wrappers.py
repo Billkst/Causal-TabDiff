@@ -63,14 +63,15 @@ class TimeXerWrapper(nn.Module):
         self.seq_len = seq_len
         self.pred_len = pred_len
         self.exog_in = exog_in
+        self.enc_in = enc_in
         
         self.config = argparse.Namespace(
             task_name=task,
             seq_len=seq_len,
             pred_len=pred_len if task == 'long_term_forecast' else 0,
-            enc_in=enc_in,
-            dec_in=enc_in,
-            c_out=1 if task == 'long_term_forecast' else enc_in,
+            enc_in=1,
+            dec_in=1,
+            c_out=1,
             num_class=num_class,
             d_model=d_model,
             n_heads=n_heads,
@@ -93,10 +94,16 @@ class TimeXerWrapper(nn.Module):
         if x_mark_enc is None:
             x_mark_enc = torch.zeros(x_enc.shape[0], x_enc.shape[1], self.exog_in, device=x_enc.device)
         
+        x_univariate = x_enc.mean(dim=-1, keepdim=True)
+        
         if self.task == 'classification':
-            return self.model.classification(x_enc, x_mark_enc)
+            return self.model.classification(x_univariate, x_mark_enc)
         else:
-            output = self.model.forecast(x_enc, x_mark_enc, None, None)
-            if len(output.shape) == 3:
-                return output.squeeze(-1)
+            output = self.model.forecast(x_univariate, x_mark_enc, None, None)
+            if len(output.shape) == 3 and output.shape[-1] == 1:
+                output = output.squeeze(-1)
+            if output.shape[1] < self.pred_len:
+                pad_len = self.pred_len - output.shape[1]
+                output = torch.cat([output, output[:, -1:].repeat(1, pad_len)], dim=1)
+            output = output.repeat(1, self.enc_in) if len(output.shape) == 2 else output
             return output
