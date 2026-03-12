@@ -1,5 +1,19 @@
 """
-TabDiff Landmark Wrapper - 最小化重写
+TabDiff-Inspired Basic DDPM Wrapper
+
+⚠️ 实现完整度: 10-15%
+⚠️ 类型: 简化代理版本 (Simplified Proxy)
+⚠️ 不可作为原始 TabDiff baseline 直接宣称
+
+缺失组件:
+- 连续时间参数化
+- PowerMean/LogLinear 混合噪声调度
+- Transformer 架构
+- 类别特征掩码处理
+- 混合损失函数
+
+仅用于快速原型验证，不适合正式 baseline 对比。
+如需正式 TabDiff baseline，请实现完整架构。
 """
 import torch
 import torch.nn as nn
