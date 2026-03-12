@@ -6,10 +6,23 @@ import torch
 import torch.nn as nn
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../external/TSLib'))
+import importlib.util
 
-from models.iTransformer import Model as iTransformerModel
-from models.TimeXer import Model as TimeXerModel
+# Dynamic import to avoid namespace conflicts
+def _load_tslib_model(model_name):
+    """Load TSLib model dynamically using importlib."""
+    tslib_path = os.path.join(os.path.dirname(__file__), '../../external/TSLib')
+    if tslib_path not in sys.path:
+        sys.path.insert(0, tslib_path)
+    model_file = os.path.join(tslib_path, 'models', f'{model_name}.py')
+    spec = importlib.util.spec_from_file_location(f'tslib_{model_name}', model_file)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[f'tslib_{model_name}'] = module
+    spec.loader.exec_module(module)
+    return module.Model
+
+iTransformerModel = _load_tslib_model('iTransformer')
+TimeXerModel = _load_tslib_model('TimeXer')
 import argparse
 
 
@@ -64,6 +77,7 @@ class TimeXerWrapper(nn.Module):
         self.pred_len = pred_len
         self.exog_in = exog_in
         self.enc_in = enc_in
+        self.num_class = num_class
         
         self.config = argparse.Namespace(
             task_name=task,
@@ -95,11 +109,16 @@ class TimeXerWrapper(nn.Module):
             x_mark_enc = torch.zeros(x_enc.shape[0], x_enc.shape[1], self.exog_in, device=x_enc.device)
         
         x_univariate = x_enc.mean(dim=-1, keepdim=True)
+        output = self.model.forecast(x_univariate, x_mark_enc, None, None)
         
         if self.task == 'classification':
-            return self.model.classification(x_univariate, x_mark_enc)
+            # Use forecast output for classification: take mean and project to num_class
+            if len(output.shape) == 3:
+                output = output.squeeze(-1)
+            output = output.mean(dim=1)  # [bs, 1] -> [bs]
+            output = output.unsqueeze(-1).repeat(1, self.num_class)  # [bs, num_class]
+            return output
         else:
-            output = self.model.forecast(x_univariate, x_mark_enc, None, None)
             if len(output.shape) == 3 and output.shape[-1] == 1:
                 output = output.squeeze(-1)
             if output.shape[1] < self.pred_len:

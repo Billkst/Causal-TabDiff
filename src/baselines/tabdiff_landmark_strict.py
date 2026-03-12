@@ -28,25 +28,30 @@ class TabDiffLandmarkStrictWrapper:
     
     def fit(self, train_loader, epochs, device):
         from tabdiff_core.models.unified_ctime_diffusion import UnifiedCtimeDiffusion
-        from tabdiff_core.modules.main_modules import UniModMLP
+        from tabdiff_core.modules.main_modules import UniModMLP, Model
         
         # Denoise network
-        denoise_fn = UniModMLP(
+        denoise_fn_base = UniModMLP(
             d_numerical=self.total_dim,
-            categories=[],
+            categories=np.array([]),
             num_layers=4,
             d_token=256
         ).to(device)
+        
+        denoise_fn = Model(denoise_fn=denoise_fn_base, precond=False).to(device)
         
         # Unified continuous-time diffusion
         self.model = UnifiedCtimeDiffusion(
             num_classes=np.array([]),
             num_numerical_features=self.total_dim,
             denoise_fn=denoise_fn,
-            y_only_model=False,
+            y_only_model=None,
             num_timesteps=1000,
             scheduler='power_mean',
             cat_scheduler='log_linear',
+            noise_dist='uniform_t',
+            edm_params={'sigma_data': 0.5},
+            sampler_params={'stochastic_sampler': False, 'second_order_correction': False},
             device=device
         ).to(device)
         
@@ -60,7 +65,8 @@ class TabDiffLandmarkStrictWrapper:
                 xy = torch.cat([x_flat, y], dim=1)
                 
                 optimizer.zero_grad()
-                loss = self.model.mixed_loss(xy, None)
+                d_loss, c_loss = self.model.mixed_loss(xy)
+                loss = d_loss + c_loss
                 loss.backward()
                 optimizer.step()
         
@@ -72,7 +78,7 @@ class TabDiffLandmarkStrictWrapper:
         
         self.model.eval()
         with torch.no_grad():
-            samples = self.model.sample(n_samples, device)
+            samples = self.model.sample(n_samples)
             X_syn = samples[:, :-1].reshape(n_samples, self.seq_len, self.feature_dim)
             Y_syn = (samples[:, -1:] > 0).float()
             return X_syn, Y_syn
