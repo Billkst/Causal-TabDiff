@@ -6,10 +6,12 @@ import torch.nn as nn
 import numpy as np
 import sys
 import os
+import time
 sys.path.insert(0, 'src')
 
 from data.data_module_landmark import load_and_split_data, create_dataloaders
 from baselines.tslib_wrappers import iTransformerWrapper, TimeXerWrapper
+from evaluation.efficiency import EfficiencyTracker
 import argparse
 
 
@@ -17,36 +19,44 @@ def train_layer2(model, train_loader, val_loader, epochs, device, lr=1e-3):
     model = model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     criterion = nn.MSELoss()
+    tracker = EfficiencyTracker()
+    epoch_times = []
     
     for epoch in range(epochs):
+        epoch_start = time.time()
         model.train()
         train_loss = 0
-        for batch in train_loader:
-            x = batch['x'].to(device)
-            traj_target = batch['trajectory_target'].to(device)
-            traj_mask = batch['trajectory_valid_mask'].to(device)
-            
-            if x.shape[1] < 3:
-                pad_len = 3 - x.shape[1]
-                x = torch.cat([x, torch.zeros(x.shape[0], pad_len, x.shape[2], device=device)], dim=1)
-            
-            optimizer.zero_grad()
-            output = model(x)
-            
-            if len(output.shape) == 3:
-                output = output.mean(dim=-1)
-            if output.shape[1] > traj_target.shape[1]:
-                output = output[:, :traj_target.shape[1]]
-            
-            loss = criterion(output * traj_mask, traj_target * traj_mask)
-            loss.backward()
-            optimizer.step()
-            train_loss += loss.item()
+        with tracker.track_training():
+            for batch in train_loader:
+                x = batch['x'].to(device)
+                traj_target = batch['trajectory_target'].to(device)
+                traj_mask = batch['trajectory_valid_mask'].to(device)
+                
+                if x.shape[1] < 3:
+                    pad_len = 3 - x.shape[1]
+                    x = torch.cat([x, torch.zeros(x.shape[0], pad_len, x.shape[2], device=device)], dim=1)
+                
+                optimizer.zero_grad()
+                output = model(x)
+                
+                if len(output.shape) == 3:
+                    output = output.mean(dim=-1)
+                if output.shape[1] > traj_target.shape[1]:
+                    output = output[:, :traj_target.shape[1]]
+                
+                loss = criterion(output * traj_mask, traj_target * traj_mask)
+                loss.backward()
+                optimizer.step()
+                train_loss += loss.item()
+        
+        epoch_time = time.time() - epoch_start
+        epoch_times.append(epoch_time)
         
         if (epoch + 1) % 2 == 0:
             print(f"Epoch {epoch+1}/{epochs} | Loss {train_loss/len(train_loader):.4f}", flush=True)
     
-    return model
+    tracker.set_epoch_time(np.mean(epoch_times))
+    return model, tracker
 
 
 def predict_layer2(model, test_loader, device):
@@ -91,13 +101,15 @@ def main():
     else:
         model = TimeXerWrapper(seq_len=3, enc_in=feature_dim, exog_in=4, task='long_term_forecast', pred_len=7)
     
-    model = train_layer2(model, train_loader, val_loader, args.epochs, device)
+    model, tracker = train_layer2(model, train_loader, val_loader, args.epochs, device)
     
     y_pred, y_true, y_mask = predict_layer2(model, test_loader, device)
     
     os.makedirs('outputs/tslib_layer2', exist_ok=True)
     np.savez(f'outputs/tslib_layer2/{args.model}_seed{args.seed}_layer2.npz',
              y_pred=y_pred, y_true=y_true, y_mask=y_mask)
+    
+    tracker.save_json(f'outputs/tslib_layer2/{args.model}_efficiency_seed{args.seed}.json')
     
     print(f"\n✓ {args.model} Layer 2 完成", flush=True)
 

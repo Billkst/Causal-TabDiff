@@ -6,11 +6,13 @@ import torch.nn as nn
 import numpy as np
 import sys
 import os
+import time
 sys.path.insert(0, 'src')
 
 from data.data_module_landmark import load_and_split_data, LandmarkDataset, create_dataloaders
 from baselines.tslib_wrappers import iTransformerWrapper, TimeXerWrapper
 from torch.utils.data import DataLoader
+from evaluation.efficiency import EfficiencyTracker
 import argparse
 
 
@@ -20,51 +22,62 @@ def train_layer1(model, train_loader, val_loader, epochs, device, lr=1e-3):
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     criterion = nn.BCEWithLogitsLoss()
     
+    tracker = EfficiencyTracker()
+    tracker.set_model_size(model)
     best_val_loss = float('inf')
+    epoch_times = []
     
-    for epoch in range(epochs):
-        model.train()
-        train_loss = 0
-        for batch in train_loader:
-            x = batch['x'].to(device)  # (batch, seq_len, features)
-            y = batch['y_2year'].to(device)  # (batch, 1)
-            
-            # Pad to fixed length if needed
-            if x.shape[1] < 3:
-                pad_len = 3 - x.shape[1]
-                x = torch.cat([x, torch.zeros(x.shape[0], pad_len, x.shape[2], device=device)], dim=1)
-            
-            optimizer.zero_grad()
-            logits = model(x)  # (batch, 2)
-            loss = criterion(logits[:, 1:2], y)
-            loss.backward()
-            optimizer.step()
-            train_loss += loss.item()
-        
-        # Validation
-        model.eval()
-        val_loss = 0
-        with torch.no_grad():
-            for batch in val_loader:
-                x = batch['x'].to(device)
-                y = batch['y_2year'].to(device)
+    with tracker.track_training():
+        for epoch in range(epochs):
+            epoch_start = time.time()
+            model.train()
+            train_loss = 0
+            for batch in train_loader:
+                x = batch['x'].to(device)  # (batch, seq_len, features)
+                y = batch['y_2year'].to(device)  # (batch, 1)
+                
+                # Pad to fixed length if needed
                 if x.shape[1] < 3:
                     pad_len = 3 - x.shape[1]
                     x = torch.cat([x, torch.zeros(x.shape[0], pad_len, x.shape[2], device=device)], dim=1)
-                logits = model(x)
+                
+                optimizer.zero_grad()
+                logits = model(x)  # (batch, 2)
                 loss = criterion(logits[:, 1:2], y)
-                val_loss += loss.item()
+                loss.backward()
+                optimizer.step()
+                train_loss += loss.item()
         
-        train_loss /= len(train_loader)
-        val_loss /= len(val_loader)
+            # Validation
+            model.eval()
+            val_loss = 0
+            with torch.no_grad():
+                for batch in val_loader:
+                    x = batch['x'].to(device)
+                    y = batch['y_2year'].to(device)
+                    if x.shape[1] < 3:
+                        pad_len = 3 - x.shape[1]
+                        x = torch.cat([x, torch.zeros(x.shape[0], pad_len, x.shape[2], device=device)], dim=1)
+                    logits = model(x)
+                    loss = criterion(logits[:, 1:2], y)
+                    val_loss += loss.item()
         
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
+            train_loss /= len(train_loader)
+            val_loss /= len(val_loader)
         
-        if (epoch + 1) % 10 == 0:
-            print(f"Epoch {epoch+1}/{epochs} | TrainLoss {train_loss:.4f} | ValLoss {val_loss:.4f} | BestValLoss {best_val_loss:.4f}", flush=True)
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
+        
+            epoch_time = time.time() - epoch_start
+            epoch_times.append(epoch_time)
+        
+            if (epoch + 1) % 10 == 0:
+                print(f"Epoch {epoch+1}/{epochs} | TrainLoss {train_loss:.4f} | ValLoss {val_loss:.4f} | BestValLoss {best_val_loss:.4f}", flush=True)
     
-    return model
+    avg_epoch_time = np.mean(epoch_times)
+    tracker.set_epoch_time(avg_epoch_time)
+    
+    return model, tracker
 
 
 def predict_layer1(model, test_loader, device):
@@ -119,7 +132,7 @@ def main():
         model = TimeXerWrapper(seq_len=3, enc_in=feature_dim, exog_in=4, task='classification', num_class=2)
     
     # Train
-    model = train_layer1(model, train_loader, val_loader, args.epochs, device, args.lr)
+    model, tracker = train_layer1(model, train_loader, val_loader, args.epochs, device, args.lr)
     
     # Predict
     y_pred, y_true = predict_layer1(model, test_loader, device)
@@ -128,6 +141,7 @@ def main():
     os.makedirs('outputs/tslib_models', exist_ok=True)
     np.savez(f'outputs/tslib_models/{args.model}_seed{args.seed}_predictions.npz',
              y_pred=y_pred, y_true=y_true)
+    tracker.save_json(f'outputs/tslib_models/{args.model}_efficiency_seed{args.seed}.json')
     
     print(f"\n=== {args.model.upper()} 训练完成 ===", flush=True)
 

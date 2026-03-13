@@ -2,7 +2,11 @@
 效率指标收集模块
 """
 import time
-import psutil
+try:
+    import psutil
+    HAS_PSUTIL = True
+except ImportError:
+    HAS_PSUTIL = False
 import os
 import torch
 import numpy as np
@@ -15,13 +19,17 @@ class EfficiencyTracker:
     def __init__(self):
         self.metrics = {}
         self.start_time = None
-        self.process = psutil.Process(os.getpid())
+        if HAS_PSUTIL:
+            self.process = psutil.Process(os.getpid())
+        else:
+            self.process = None
         
     @contextmanager
     def track_training(self):
         """追踪训练阶段"""
         self.start_time = time.time()
-        start_mem = self.process.memory_info().rss / 1024 / 1024  # MB
+        if HAS_PSUTIL and self.process:
+            start_mem = self.process.memory_info().rss / 1024 / 1024
         
         if torch.cuda.is_available():
             torch.cuda.reset_peak_memory_stats()
@@ -30,10 +38,11 @@ class EfficiencyTracker:
         yield
         
         elapsed = time.time() - self.start_time
-        end_mem = self.process.memory_info().rss / 1024 / 1024
+        if HAS_PSUTIL and self.process:
+            end_mem = self.process.memory_info().rss / 1024 / 1024
+            self.metrics['peak_cpu_ram_mb'] = end_mem
         
         self.metrics['total_training_wall_clock_sec'] = elapsed
-        self.metrics['peak_cpu_ram_mb'] = end_mem
         
         if torch.cuda.is_available():
             self.metrics['peak_gpu_memory_mb'] = torch.cuda.max_memory_allocated() / 1024 / 1024
@@ -71,3 +80,10 @@ class EfficiencyTracker:
     def get_metrics(self):
         """返回所有效率指标"""
         return self.metrics.copy()
+    
+    def save_json(self, filepath):
+        """保存效率指标到 JSON 文件"""
+        import json
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        with open(filepath, 'w') as f:
+            json.dump(self.metrics, f, indent=2)

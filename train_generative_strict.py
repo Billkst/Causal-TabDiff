@@ -3,9 +3,11 @@ import numpy as np
 import sys
 import os
 import argparse
+import time
 sys.path.insert(0, 'src')
 
 from data.data_module_landmark import load_and_split_data, create_dataloaders
+from evaluation.efficiency import EfficiencyTracker
 
 def main():
     parser = argparse.ArgumentParser()
@@ -16,6 +18,7 @@ def main():
     args = parser.parse_args()
     
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    tracker = EfficiencyTracker()
     
     print(f"\n=== 训练 {args.model.upper()}_strict (Seed {args.seed}) ===", flush=True)
     
@@ -41,7 +44,8 @@ def main():
     else:
         raise ValueError(f"Model {args.model} not supported")
     
-    model.fit(train_loader, args.epochs, device)
+    with tracker.track_training():
+        model.fit(train_loader, args.epochs, device)
     
     X_syn, Y_syn = model.sample(1000, device)
     
@@ -64,6 +68,8 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
     np.savez(f'{args.output_dir}/{args.model}_seed{args.seed}_predictions.npz',
              y_pred=y_pred, y_true=y_test)
+    
+    tracker.save_json(f'{args.output_dir}/{args.model}_efficiency_seed{args.seed}.json')
     
     print(f"\n=== {args.model.upper()}_strict 完成 ===", flush=True)
 

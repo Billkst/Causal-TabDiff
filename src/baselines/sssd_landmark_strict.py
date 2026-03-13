@@ -13,10 +13,11 @@ import torch.nn as nn
 
 
 class SSSDLandmarkWrapper:
-    def __init__(self, seq_len, feature_dim):
+    def __init__(self, seq_len, feature_dim, trajectory_len=7):
         self.seq_len = seq_len
         self.feature_dim = feature_dim
-        self.total_dim = seq_len * feature_dim + 1
+        self.trajectory_len = trajectory_len
+        self.total_dim = seq_len * feature_dim + trajectory_len
         self.model = None
         self.fitted = False
     
@@ -53,9 +54,9 @@ class SSSDLandmarkWrapper:
         for epoch in range(epochs):
             for batch in train_loader:
                 x = batch['x'].to(device)
-                y = batch['y_2year'].to(device)
+                traj = batch['trajectory_target'].to(device)
                 x_flat = x.reshape(x.shape[0], -1)
-                xy = torch.cat([x_flat, y], dim=1)
+                xy = torch.cat([x_flat, traj], dim=1)
                 
                 t = torch.randint(0, timesteps, (xy.shape[0],), device=device).float() / timesteps
                 noise = torch.randn_like(xy)
@@ -72,7 +73,10 @@ class SSSDLandmarkWrapper:
     
     def sample(self, n_samples, device):
         if not self.fitted:
-            return torch.randn(n_samples, self.seq_len, self.feature_dim, device=device), torch.randn(n_samples, 1, device=device)
+            X_syn = torch.randn(n_samples, self.seq_len, self.feature_dim, device=device)
+            Y_traj = torch.randn(n_samples, self.trajectory_len, device=device)
+            Y_2year = (Y_traj[:, :2].mean(dim=1, keepdim=True) > 0).float()
+            return X_syn, Y_2year, Y_traj
         
         self.model.eval()
         with torch.no_grad():
@@ -84,6 +88,7 @@ class SSSDLandmarkWrapper:
                 alpha = 1 - t.unsqueeze(-1)
                 x = (x - (1 - alpha) * pred_noise) / alpha.sqrt()
             
-            X_syn = x[:, :-1].reshape(n_samples, self.seq_len, self.feature_dim)
-            Y_syn = (x[:, -1:] > 0).float()
-            return X_syn, Y_syn
+            X_syn = x[:, :-self.trajectory_len].reshape(n_samples, self.seq_len, self.feature_dim)
+            Y_traj = torch.sigmoid(x[:, -self.trajectory_len:])
+            Y_2year = (Y_traj[:, :2].mean(dim=1, keepdim=True) > 0.5).float()
+            return X_syn, Y_2year, Y_traj
