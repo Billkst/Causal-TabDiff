@@ -53,7 +53,8 @@ class TSTRPipeline:
                 max_depth=6,
                 learning_rate=0.1,
                 random_state=42,
-                eval_metric='logloss'
+                tree_method='hist',
+                device='cpu'
             )
         else:
             raise ValueError(f"不支持的分类器类型: {self.classifier_type}")
@@ -66,6 +67,12 @@ class TSTRPipeline:
         
         y_flat = Y_synthetic.flatten() if len(Y_synthetic.shape) > 1 else Y_synthetic
         
+        import torch
+        if isinstance(X_flat, torch.Tensor):
+            X_flat = X_flat.cpu().numpy()
+        if isinstance(y_flat, torch.Tensor):
+            y_flat = y_flat.cpu().numpy()
+        
         print(f"[TSTR] 训练数据: X shape={X_flat.shape}, Y shape={y_flat.shape}, Y positive rate={y_flat.mean():.4f}")
         self.classifier.fit(X_flat, y_flat)
         print(f"[TSTR] 下游分类器训练完成")
@@ -75,7 +82,15 @@ class TSTRPipeline:
         if self.classifier is None:
             raise RuntimeError("分类器未训练，请先调用 train_downstream_classifier()")
         
-        X_flat = X_real.reshape(X_real.shape[0], -1)
+        if len(X_real.shape) == 3:
+            X_flat = X_real[:, -1, :]
+        else:
+            X_flat = X_real
+        
+        import torch
+        if isinstance(X_flat, torch.Tensor):
+            X_flat = X_flat.cpu().numpy()
+        
         y_pred_proba = self.classifier.predict_proba(X_flat)[:, 1]
         return y_pred_proba
     

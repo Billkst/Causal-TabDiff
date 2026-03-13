@@ -337,7 +337,8 @@ class STaSyWrapper(BaselineWrapper):
         # Shape: [Batch, (T*D) + T_dim(1) + Y_dim(1)] 
         # Last index is Y, second last is T
         Y_cf = XYT_cf[:, -1:]
-        T_cf = XYT_cf[:, -2:-1] # Ignoring this generated T eventually, relying on alpha_target logic? No, wait. 
+        Y_cf = (torch.sigmoid(Y_cf) > 0.5).float()
+        T_cf = XYT_cf[:, -2:-1]
         X_cf = XYT_cf[:, :-2]
         
         X_cf_reshaped = X_cf.view(batch_size, self.t_steps, self.feature_dim)
@@ -347,34 +348,13 @@ class STaSyWrapper(BaselineWrapper):
         meta_path = _resolve_metadata_path()
         with open(meta_path, 'r') as f:
             meta = json.load(f)
-             
-        D_discrete = len(meta['columns'])
-        X_cf_semantic = torch.zeros((batch_size, self.t_steps, D_discrete), device=device)
+              
+        D_discrete = self.t_steps * self.feature_dim
         
-        for t in range(self.t_steps):
-            analog_offset = 0
-            for i_col, col_meta in enumerate(meta['columns']):
-                dim = col_meta['dim']
-                feat = X_cf_reshaped[:, t, analog_offset : analog_offset + dim]
-                if col_meta['type'] == 'continuous':
-                    X_cf_semantic[:, t, i_col:i_col+1] = feat
-                else:
-                    bits = (feat > 0).long()
-                    idx_val = torch.zeros((batch_size, 1), dtype=torch.long, device=device)
-                    for b in range(dim):
-                        idx_val = (idx_val << 1) | bits[:, b:b+1]
-                    X_cf_semantic[:, t, i_col:i_col+1] = idx_val.float()
-                analog_offset += dim
-
-        jitter_scale = float(os.environ.get('STASY_SAMPLE_CONT_JITTER', '0') or 0.0)
-        if jitter_scale > 0:
-            cont_indices = [i for i, col_meta in enumerate(meta['columns']) if col_meta['type'] == 'continuous']
-            if cont_indices:
-                for col_idx in cont_indices:
-                    col_vals = X_cf_semantic[:, :, col_idx:col_idx+1]
-                    col_std = torch.std(col_vals)
-                    noise = torch.randn_like(col_vals) * (jitter_scale * (col_std + 1e-6))
-                    X_cf_semantic[:, :, col_idx:col_idx+1] = col_vals + noise
+        if D_discrete == 0:
+            return X_cf_reshaped[:, -1, :], Y_cf
+        
+        X_cf_semantic = X_cf_reshaped
                 
         return X_cf_semantic[:, -1, :], Y_cf
 
@@ -401,10 +381,10 @@ class TSDiffWrapper(BaselineWrapper):
              self.metadata = json.load(f)
              
         # Feature sizes
-        self.d_discrete = len(self.metadata['columns'])
+        sample_batch = next(iter(dataloader))
+        self.d_discrete = sample_batch['x'].shape[2]
         
         # Determine total dimensions
-        sample_batch = next(iter(dataloader))
         # Total Features = (T_steps * Original Num/AnalogDims) + T_target + Y
         x_dim = sample_batch['x'].reshape(sample_batch['x'].shape[0], -1).shape[1]
         self.total_dim = x_dim + 1 + 1 # + alpha_target + Y
@@ -472,22 +452,13 @@ class TSDiffWrapper(BaselineWrapper):
         
         X_cf_reshaped = X_cf_analog.view(batch_size, self.t_steps, -1)
         
-        # Reconstruct continuous and discrete classes correctly
+        if self.d_discrete == 0:
+            return X_cf_reshaped[:, -1, :], Y_cf_tensor
+        
         X_cf_semantic = torch.zeros((batch_size, self.t_steps, self.d_discrete), device=device)
         for t in range(self.t_steps):
-            analog_offset = 0
-            for i_col, col_meta in enumerate(self.metadata['columns']):
-                dim = col_meta['dim']
-                feat = X_cf_reshaped[:, t, analog_offset : analog_offset + dim]
-                if col_meta['type'] == 'continuous':
-                    X_cf_semantic[:, t, i_col:i_col+1] = feat
-                else:
-                    bits = (feat > 0).long()
-                    idx_val = torch.zeros((batch_size, 1), dtype=torch.long, device=device)
-                    for b in range(dim):
-                        idx_val = (idx_val << 1) | bits[:, b:b+1]
-                    X_cf_semantic[:, t, i_col:i_col+1] = idx_val.float()
-                analog_offset += dim
+            for i_col in range(self.d_discrete):
+                X_cf_semantic[:, t, i_col:i_col+1] = X_cf_reshaped[:, t, i_col:i_col+1]
         
         # Apply Y binarization threshold
         Y_cf_tensor = (Y_cf_tensor > 0.5).float()
