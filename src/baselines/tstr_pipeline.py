@@ -7,6 +7,9 @@ import numpy as np
 from sklearn.ensemble import GradientBoostingClassifier
 import pickle
 import os
+import sys
+sys.path.insert(0, 'src')
+from data.landmark_adapter import adapt_landmark_to_generative
 
 
 class TSTRPipeline:
@@ -25,7 +28,10 @@ class TSTRPipeline:
     def train_generative_model(self, train_loader, epochs, device):
         """在真实训练集上训练生成模型"""
         print(f"[TSTR] 训练生成模型...")
-        self.gen_model.fit(train_loader, epochs, device)
+        adapted_loader = []
+        for batch in train_loader:
+            adapted_loader.append(adapt_landmark_to_generative(batch, device))
+        self.gen_model.fit(adapted_loader, epochs, device)
         print(f"[TSTR] 生成模型训练完成")
     
     def generate_synthetic_data(self, n_samples, device):
