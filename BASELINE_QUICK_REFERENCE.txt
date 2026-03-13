@@ -1,0 +1,94 @@
+================================================================================
+B2 BASELINE 失败快速参考表
+================================================================================
+
+【失败模型汇总】
+
+1. TSDiff (TSTR)
+   - 状态: ✗ 完全失败
+   - 原因: XGBoost cupy 依赖缺失
+   - Seeds: 42, 52, 62, 72, 82
+   - 日志: logs/b2_baseline/tsdiff_stasy_fix/tsdiff_final.log
+   - 修复: 修改 src/baselines/tstr_pipeline.py:51-58
+
+2. STaSy (TSTR)
+   - 状态: ✗ 完全失败
+   - 原因: XGBoost cupy 依赖缺失
+   - Seeds: 42, 52, 62, 72, 82
+   - 日志: logs/b2_baseline/tsdiff_stasy_fix/stasy_final.log
+   - 修复: 修改 src/baselines/tstr_pipeline.py:51-58
+
+3. iTransformer Layer2
+   - 状态: ⚠️ 指标缺失
+   - 原因: 指标计算脚本未完成
+   - Seeds: 42, 52, 62, 72, 82
+   - 日志: logs/b2_baseline/layer2/
+   - 修复: python train_tslib_layer2.py --model itransformer --compute-metrics-only
+
+4. SSSD Layer2
+   - 状态: ⚠️ 指标缺失
+   - 原因: 指标计算脚本未完成
+   - Seeds: 42, 52, 62, 72, 82
+   - 日志: logs/b2_baseline/layer2/
+   - 修复: python train_tslib_layer2.py --model sssd --compute-metrics-only
+
+5. SurvTraj Layer2
+   - 状态: ⚠️ 指标缺失
+   - 原因: 指标计算脚本未完成
+   - Seeds: 42, 52, 62, 72, 82
+   - 日志: logs/b2_baseline/layer2/
+   - 修复: python train_tslib_layer2.py --model survtraj --compute-metrics-only
+
+6. CausalForest
+   - 状态: ✗ 预测文件缺失
+   - 原因: 预测生成逻辑差异
+   - Seeds: 42, 52, 62, 72, 82
+   - 日志: logs/b2_baseline/layer1/
+   - 修复: python train_causal_forest_b2.py --generate-predictions --seed {seed}
+
+================================================================================
+【成功的模型】
+
+Layer1 (Direct) - 全部成功:
+  ✓ CausalForest (metrics + plots)
+  ✓ iTransformer (pred + metrics + plots)
+  ✓ TabSyn (pred + metrics + plots)
+  ✓ TabDiff (pred + metrics + plots)
+  ✓ SurvTraj (pred + metrics + plots)
+  ✓ SSSD (pred + metrics + plots)
+
+Layer2 (TSLib) - 部分成功:
+  ✓ TimeXer (pred + metrics + plots)
+  ⚠️ iTransformer (pred only)
+  ⚠️ SSSD (pred only)
+  ⚠️ SurvTraj (pred only)
+
+================================================================================
+【关键文件】
+
+源代码:
+  - src/baselines/tstr_pipeline.py (需修改第 51-58 行)
+  - src/baselines/wrappers.py
+  - train_tstr_pipeline.py
+  - train_tslib_layer2.py
+  - train_causal_forest_b2.py
+
+日志:
+  - logs/b2_baseline/tsdiff_stasy_fix/ (TSTR 失败日志)
+  - logs/b2_baseline/layer2/ (Layer2 日志)
+  - logs/b2_baseline/final_reconciliation.log (对账报告)
+
+输出:
+  - outputs/b2_baseline/layer1/ (Layer1 结果)
+  - outputs/b2_baseline/layer2/ (Layer2 结果)
+  - outputs/b2_baseline/tstr/ (TSTR 结果)
+  - outputs/b2_baseline/summaries/ (汇总表格)
+
+================================================================================
+【修复优先级】
+
+P1 (立即): 修复 TSTR XGBoost 依赖 → 重新训练 TSDiff + STaSy
+P2 (次日): 重新计算 Layer2 指标 (iTransformer, SSSD, SurvTraj)
+P3 (次日): 生成 CausalForest 预测文件
+
+================================================================================
