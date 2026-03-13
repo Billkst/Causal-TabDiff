@@ -53,8 +53,7 @@ class TSTRPipeline:
                 max_depth=6,
                 learning_rate=0.1,
                 random_state=42,
-                tree_method='hist',
-                device='cpu'
+                tree_method='hist'
             )
         else:
             raise ValueError(f"不支持的分类器类型: {self.classifier_type}")
