@@ -66,6 +66,9 @@ def main():
     y_true = data['y_true']
     y_mask = data['y_mask']
     
+    if len(y_pred.shape) == 3:
+        y_pred = y_pred[:, :, 0]
+    
     metrics = evaluate_trajectory(y_pred, y_true, y_mask)
     
     print(f"=== Layer 2 Metrics ===")

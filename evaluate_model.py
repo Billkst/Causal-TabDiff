@@ -97,6 +97,7 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--debug_n_persons', type=int, default=None)
     parser.add_argument('--alpha_target', type=float, default=0.5)
+    parser.add_argument('--model_name', type=str, default='baseline')
     args = parser.parse_args()
     
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -111,6 +112,20 @@ if __name__ == '__main__':
             raise ValueError("--predictions_file required for baseline")
         
         data = np.load(args.predictions_file)
-        evaluate_from_predictions(data['test_y_true'], data['test_y_pred'], 
-                                 data.get('val_y_true'), data.get('val_y_pred'),
-                                 args.output_dir, model_name=data.get('model_name', 'baseline'))
+        
+        if 'test_y_true' in data:
+            y_true = data['test_y_true']
+            y_pred = data['test_y_pred']
+            val_y_true = data.get('val_y_true')
+            val_y_pred = data.get('val_y_pred')
+        elif 'y_true' in data:
+            y_true = data['y_true']
+            y_pred = data['y_pred']
+            val_y_true = None
+            val_y_pred = None
+        else:
+            raise KeyError(f"无法找到 y_true/y_pred 或 test_y_true/test_y_pred")
+        
+        evaluate_from_predictions(y_true, y_pred, 
+                                 val_y_true, val_y_pred,
+                                 args.output_dir, model_name=args.model_name)

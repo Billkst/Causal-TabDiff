@@ -61,6 +61,8 @@ def generate_main_table(output_dir):
             row = aggregate_model_results(model, 'outputs/b2_baseline/tstr', '{model}_seed{seed}_metrics.json')
         if not row:
             row = aggregate_model_results(model.lower(), 'outputs/tstr_baselines', '{model}_seed{seed}_metrics.json')
+        if not row:
+            row = aggregate_model_results(model.lower(), 'outputs/b2_baseline/tsdiff_stasy', '{model}_seed{seed}_metrics.json')
         if row:
             rows.append(row)
     
