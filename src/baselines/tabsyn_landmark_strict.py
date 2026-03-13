@@ -27,9 +27,9 @@ class TabSynLandmarkStrictWrapper:
             sys.path.insert(0, tabsyn_path)
     
     def fit(self, train_loader, epochs, device):
-        from tabsyn_core.vae.model import Model_VAE
-        from tabsyn_core.model import MLPDiffusion, Model
-        from tabsyn_core.diffusion_utils import EDMLoss
+        from vae.model import Model_VAE
+        from model import MLPDiffusion, Model
+        from diffusion_utils import EDMLoss
         
         # Stage 1: VAE pretraining
         self.vae_model = Model_VAE(
@@ -88,7 +88,7 @@ class TabSynLandmarkStrictWrapper:
         if not self.fitted:
             return torch.randn(n_samples, self.seq_len, self.feature_dim, device=device), torch.randn(n_samples, 1, device=device)
         
-        from tabsyn_core.diffusion_utils import sample
+        from diffusion_utils import sample
         
         if self.diffusion_model is not None:
             self.diffusion_model.eval()

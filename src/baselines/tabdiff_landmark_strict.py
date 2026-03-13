@@ -27,8 +27,8 @@ class TabDiffLandmarkStrictWrapper:
             sys.path.insert(0, tabdiff_path)
     
     def fit(self, train_loader, epochs, device):
-        from tabdiff_core.models.unified_ctime_diffusion import UnifiedCtimeDiffusion
-        from tabdiff_core.modules.main_modules import UniModMLP, Model
+        from models.unified_ctime_diffusion import UnifiedCtimeDiffusion
+        from modules.main_modules import UniModMLP, Model
         
         # Denoise network
         denoise_fn_base = UniModMLP(
