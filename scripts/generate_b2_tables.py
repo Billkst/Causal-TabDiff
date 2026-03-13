@@ -51,13 +51,16 @@ def generate_main_table(output_dir):
     """生成 Layer1 主结果表"""
     print("\n=== 生成 baseline_main_table.csv ===")
     
-    models = ['CausalForest', 'iTransformer', 'tabsyn', 'tabdiff', 'survtraj', 'sssd']
+    models = ['CausalForest', 'iTransformer', 'TSDiff', 'STaSy', 
+              'tabsyn', 'tabdiff', 'survtraj', 'sssd']
     
     rows = []
     for model in models:
         row = aggregate_model_results(model, 'outputs/b2_baseline/layer1', '{model}_seed{seed}_metrics.json')
         if not row:
             row = aggregate_model_results(model, 'outputs/b2_baseline/tstr', '{model}_seed{seed}_metrics.json')
+        if not row:
+            row = aggregate_model_results(model.lower(), 'outputs/tstr_baselines', '{model}_seed{seed}_metrics.json')
         if row:
             rows.append(row)
     
@@ -75,7 +78,7 @@ def generate_layer2_table(output_dir):
     """生成 Layer2 结果表"""
     print("\n=== 生成 baseline_layer2_table.csv ===")
     
-    models = ['iTransformer', 'TimeXer']
+    models = ['iTransformer', 'TimeXer', 'SSSD', 'SurvTraj']
     rows = []
     
     for model in models:
@@ -84,6 +87,8 @@ def generate_layer2_table(output_dir):
         
         for seed in SEEDS:
             file = f'outputs/b2_baseline/layer2/{model}_seed{seed}_layer2_metrics.json'
+            if not os.path.exists(file):
+                file = f'outputs/b2_baseline/layer2/{model.lower()}_seed{seed}_layer2_metrics.json'
             if os.path.exists(file):
                 with open(file, 'r') as f:
                     data = json.load(f)
