@@ -20,7 +20,9 @@ def train_layer1(model, train_loader, val_loader, epochs, device, lr=1e-3):
     """训练 Layer 1: 2-year risk prediction"""
     model = model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    criterion = nn.BCEWithLogitsLoss()
+    # 不平衡处理：2% 正例率 -> pos_weight = 49.0
+    pos_weight = torch.tensor([49.0], device=device)
+    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     
     tracker = EfficiencyTracker()
     tracker.set_model_size(model)
