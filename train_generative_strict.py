@@ -83,6 +83,10 @@ def main():
 
     X_flat = X_syn.cpu().numpy().reshape(X_syn.shape[0], -1)
     y_syn = Y_syn.cpu().numpy().flatten()
+    print(
+        f"Synthetic label stats | unique={np.unique(y_syn)} | pos_rate={float(np.mean(y_syn)):.4f}",
+        flush=True,
+    )
     if np.unique(y_syn).size < 2:
         os.makedirs(args.output_dir, exist_ok=True)
         failure_path = os.path.join(args.output_dir, f'{args.model}_seed{args.seed}_FAILED.txt')

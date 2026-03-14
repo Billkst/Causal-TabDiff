@@ -21,6 +21,7 @@ class TabDiffLandmarkStrictWrapper:
         self.total_dim = seq_len * feature_dim + 1
         self.model = None
         self.fitted = False
+        self.train_pos_rate = 0.01
         
         tabdiff_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'tabdiff_core'))
         if tabdiff_path not in sys.path:
@@ -56,11 +57,15 @@ class TabDiffLandmarkStrictWrapper:
         ).to(device)
         
         optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3)
+        pos_total = 0.0
+        n_total = 0
         
         for epoch in range(epochs):
             for batch in train_loader:
                 x = batch['x'].to(device)
                 y = batch['y_2year'].to(device)
+                pos_total += float(y.sum().item())
+                n_total += int(y.numel())
                 x_flat = x.reshape(x.shape[0], -1)
                 xy = torch.cat([x_flat, y], dim=1)
                 
@@ -69,6 +74,9 @@ class TabDiffLandmarkStrictWrapper:
                 loss = d_loss + c_loss
                 loss.backward()
                 optimizer.step()
+
+        if n_total > 0:
+            self.train_pos_rate = max(1.0 / n_total, pos_total / n_total)
         
         self.fitted = True
     
@@ -80,5 +88,15 @@ class TabDiffLandmarkStrictWrapper:
         with torch.no_grad():
             samples = self.model.sample(n_samples)
             X_syn = samples[:, :-1].reshape(n_samples, self.seq_len, self.feature_dim)
-            Y_syn = (samples[:, -1:] > 0).float()
+            y_score = torch.sigmoid(samples[:, -1:])
+            k_pos = max(1, int(round(self.train_pos_rate * n_samples)))
+            k_pos = min(k_pos, n_samples - 1) if n_samples > 1 else 1
+            if k_pos > 0:
+                flat_score = y_score.flatten()
+                topk_idx = torch.topk(flat_score, k_pos).indices
+                Y_syn = torch.zeros_like(flat_score)
+                Y_syn[topk_idx] = 1.0
+                Y_syn = Y_syn.reshape(-1, 1)
+            else:
+                Y_syn = torch.zeros((n_samples, 1), device=device)
             return X_syn, Y_syn
