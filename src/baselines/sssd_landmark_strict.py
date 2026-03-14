@@ -20,6 +20,7 @@ class SSSDLandmarkWrapper:
         self.total_dim = seq_len * feature_dim + trajectory_len
         self.model = None
         self.fitted = False
+        self.train_pos_rate = 0.01
     
     def fit(self, train_loader, epochs, device):
         # Simplified SSSD: MLP encoder + DDPM diffusion
@@ -50,11 +51,17 @@ class SSSDLandmarkWrapper:
         self.model = SSSDModel(self.total_dim).to(device)
         optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3)
         timesteps = 100
+        pos_total = 0.0
+        n_total = 0
         
         for epoch in range(epochs):
             for batch in train_loader:
                 x = batch['x'].to(device)
                 traj = batch['trajectory_target'].to(device)
+                if 'y_2year' in batch:
+                    y_2year = batch['y_2year'].to(device)
+                    pos_total += float(y_2year.sum().item())
+                    n_total += int(y_2year.numel())
                 x_flat = x.reshape(x.shape[0], -1)
                 xy = torch.cat([x_flat, traj], dim=1)
                 
@@ -68,6 +75,9 @@ class SSSDLandmarkWrapper:
                 loss = nn.functional.mse_loss(pred_noise, noise)
                 loss.backward()
                 optimizer.step()
+
+        if n_total > 0:
+            self.train_pos_rate = max(1.0 / n_total, pos_total / n_total)
         
         self.fitted = True
     
@@ -90,5 +100,14 @@ class SSSDLandmarkWrapper:
             
             X_syn = x[:, :-self.trajectory_len].reshape(n_samples, self.seq_len, self.feature_dim)
             Y_traj = torch.sigmoid(x[:, -self.trajectory_len:])
-            Y_2year = (Y_traj[:, :2].mean(dim=1, keepdim=True) > 0.5).float()
+            y_score = Y_traj[:, :2].mean(dim=1)
+            k_pos = max(1, int(round(self.train_pos_rate * n_samples)))
+            k_pos = min(k_pos, n_samples - 1) if n_samples > 1 else 1
+            if k_pos > 0:
+                topk_idx = torch.topk(y_score, k_pos).indices
+                Y_2year = torch.zeros_like(y_score)
+                Y_2year[topk_idx] = 1.0
+                Y_2year = Y_2year.reshape(-1, 1)
+            else:
+                Y_2year = torch.zeros((n_samples, 1), device=device)
             return X_syn, Y_2year, Y_traj
