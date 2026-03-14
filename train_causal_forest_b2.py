@@ -85,7 +85,8 @@ def main():
      tracker.set_model_size(model)
      
      val_pred_proba = model.predict_proba(X_val)[:, 1]
-     test_pred_proba = model.predict_proba(X_test)[:, 1]
+     with tracker.track_inference(len(y_test)):
+          test_pred_proba = model.predict_proba(X_test)[:, 1]
      
      os.makedirs(args.output_dir, exist_ok=True)
      pred_file = os.path.join(args.output_dir, f'causal_forest_seed{args.seed}_predictions.npz')

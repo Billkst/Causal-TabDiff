@@ -82,12 +82,12 @@ def train_layer1(model, train_loader, val_loader, epochs, device, lr=1e-3):
     return model, tracker
 
 
-def predict_layer1(model, test_loader, device):
+def predict_layer1(model, loader, device):
     """预测 Layer 1"""
     model.eval()
     preds, labels = [], []
     with torch.no_grad():
-        for batch in test_loader:
+        for batch in loader:
             x = batch['x'].to(device)
             y = batch['y_2year'].cpu().numpy()
             if x.shape[1] < 3:
@@ -107,6 +107,7 @@ def main():
     parser.add_argument('--epochs', type=int, default=50)
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--lr', type=float, default=1e-3)
+    parser.add_argument('--output_dir', type=str, default='outputs/tslib_models')
     args = parser.parse_args()
     
     torch.manual_seed(args.seed)
@@ -137,13 +138,20 @@ def main():
     model, tracker = train_layer1(model, train_loader, val_loader, args.epochs, device, args.lr)
     
     # Predict
-    y_pred, y_true = predict_layer1(model, test_loader, device)
+    val_pred, val_true = predict_layer1(model, val_loader, device)
+    with tracker.track_inference(len(test_df)):
+        test_pred, test_true = predict_layer1(model, test_loader, device)
     
     # Save
-    os.makedirs('outputs/tslib_models', exist_ok=True)
-    np.savez(f'outputs/tslib_models/{args.model}_seed{args.seed}_predictions.npz',
-             y_pred=y_pred, y_true=y_true)
-    tracker.save_json(f'outputs/tslib_models/{args.model}_efficiency_seed{args.seed}.json')
+    os.makedirs(args.output_dir, exist_ok=True)
+    np.savez(
+        f'{args.output_dir}/{args.model}_seed{args.seed}_predictions.npz',
+        val_y_true=val_true,
+        val_y_pred=val_pred,
+        test_y_true=test_true,
+        test_y_pred=test_pred,
+    )
+    tracker.save_json(f'{args.output_dir}/{args.model}_efficiency_seed{args.seed}.json')
     
     print(f"\n=== {args.model.upper()} 训练完成 ===", flush=True)
 

@@ -12,7 +12,7 @@ def evaluate_from_predictions(y_true, y_pred_proba, val_y_true=None, val_y_pred_
         threshold, f1_val = find_optimal_threshold(val_y_true, val_y_pred_proba, metric='f1')
         print(f"Optimal threshold: {threshold:.4f} (Val F1: {f1_val:.4f})")
     else:
-        threshold = 0.5
+        raise ValueError('正式 baseline 评估要求提供验证集预测以选择 F1 最优阈值')
     
     metrics = compute_all_metrics(y_true, y_pred_proba, threshold=threshold)
     

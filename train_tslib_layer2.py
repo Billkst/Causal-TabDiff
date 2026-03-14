@@ -20,6 +20,7 @@ def train_layer2(model, train_loader, val_loader, epochs, device, lr=1e-3):
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     criterion = nn.MSELoss()
     tracker = EfficiencyTracker()
+    tracker.set_model_size(model)
     epoch_times = []
     
     for epoch in range(epochs):
@@ -59,11 +60,11 @@ def train_layer2(model, train_loader, val_loader, epochs, device, lr=1e-3):
     return model, tracker
 
 
-def predict_layer2(model, test_loader, device):
+def predict_layer2(model, loader, device):
     model.eval()
     preds, targets, masks = [], [], []
     with torch.no_grad():
-        for batch in test_loader:
+        for batch in loader:
             x = batch['x'].to(device)
             traj_target = batch['trajectory_target'].cpu().numpy()
             traj_mask = batch['trajectory_valid_mask'].cpu().numpy()
@@ -85,6 +86,7 @@ def main():
     parser.add_argument('--model', type=str, required=True, choices=['itransformer', 'timexer'])
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--epochs', type=int, default=30)
+    parser.add_argument('--output_dir', type=str, default='outputs/tslib_layer2')
     args = parser.parse_args()
     
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -103,13 +105,22 @@ def main():
     
     model, tracker = train_layer2(model, train_loader, val_loader, args.epochs, device)
     
-    y_pred, y_true, y_mask = predict_layer2(model, test_loader, device)
-    
-    os.makedirs('outputs/tslib_layer2', exist_ok=True)
-    np.savez(f'outputs/tslib_layer2/{args.model}_seed{args.seed}_layer2.npz',
-             y_pred=y_pred, y_true=y_true, y_mask=y_mask)
-    
-    tracker.save_json(f'outputs/tslib_layer2/{args.model}_efficiency_seed{args.seed}.json')
+    val_pred, val_true, val_mask = predict_layer2(model, val_loader, device)
+    with tracker.track_inference(len(test_df)):
+        test_pred, test_true, test_mask = predict_layer2(model, test_loader, device)
+
+    os.makedirs(args.output_dir, exist_ok=True)
+    np.savez(
+        f'{args.output_dir}/{args.model}_seed{args.seed}_layer2.npz',
+        val_y_pred=val_pred,
+        val_y_true=val_true,
+        val_y_mask=val_mask,
+        test_y_pred=test_pred,
+        test_y_true=test_true,
+        test_y_mask=test_mask,
+    )
+
+    tracker.save_json(f'{args.output_dir}/{args.model}_efficiency_seed{args.seed}.json')
     
     print(f"\n✓ {args.model} Layer 2 完成", flush=True)
 

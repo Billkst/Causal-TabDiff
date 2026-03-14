@@ -24,12 +24,24 @@ def main():
     print(f"{'='*60}\n")
     
     data = np.load(args.predictions_file)
-    y_pred = data['y_pred']
-    y_true = data['y_true']
+    if 'test_y_pred' in data:
+        y_pred = data['test_y_pred']
+        y_true = data['test_y_true']
+        val_y_pred = data.get('val_y_pred')
+        val_y_true = data.get('val_y_true')
+    else:
+        y_pred = data['y_pred']
+        y_true = data['y_true']
+        val_y_pred = None
+        val_y_true = None
     
     print(f"Test: {len(y_true)} samples, {y_true.sum()} positive\n")
     
-    threshold = 0.5
+    if val_y_true is None or val_y_pred is None:
+        raise ValueError('正式 TSTR 评估要求 predictions_file 包含 val_y_true/val_y_pred')
+
+    threshold, val_f1 = find_optimal_threshold(val_y_true, val_y_pred, metric='f1')
+    print(f"Optimal threshold: {threshold:.4f} (Val F1: {val_f1:.4f})")
     metrics = compute_all_metrics(y_true, y_pred, threshold=threshold)
     
     print(f"=== TSTR Metrics ===")

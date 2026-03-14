@@ -9,6 +9,7 @@ import argparse
 
 sys.path.insert(0, 'src')
 from sklearn.metrics import mean_squared_error, mean_absolute_error
+from evaluation.metrics import compute_all_metrics, find_optimal_threshold
 
 
 def evaluate_trajectory(y_pred, y_true, y_mask):
@@ -45,6 +46,7 @@ def compute_2year_readout(y_pred, y_true, y_mask):
     """从 trajectory 读出 2-year risk"""
     # 假设前2个时间步对应 2-year risk
     pred_2year = y_pred[:, :2].mean(axis=1)
+    pred_2year = 1.0 / (1.0 + np.exp(-pred_2year))
     true_2year = (y_true[:, :2].sum(axis=1) > 0).astype(int)
     
     return pred_2year, true_2year
@@ -62,14 +64,28 @@ def main():
     print(f"{'='*60}\n")
     
     data = np.load(args.predictions_file)
-    y_pred = data['y_pred']
-    y_true = data['y_true']
-    y_mask = data['y_mask']
-    
-    if len(y_pred.shape) == 3:
-        y_pred = y_pred[:, :, 0]
-    
-    metrics = evaluate_trajectory(y_pred, y_true, y_mask)
+    if 'test_y_pred' in data:
+        val_y_pred = data['val_y_pred']
+        val_y_true = data['val_y_true']
+        val_y_mask = data['val_y_mask']
+        test_y_pred = data['test_y_pred']
+        test_y_true = data['test_y_true']
+        test_y_mask = data['test_y_mask']
+    else:
+        raise ValueError('正式 Layer2 评估要求 predictions_file 同时包含 val/test trajectory 预测')
+
+    if len(val_y_pred.shape) == 3:
+        val_y_pred = val_y_pred[:, :, 0]
+    if len(test_y_pred.shape) == 3:
+        test_y_pred = test_y_pred[:, :, 0]
+
+    metrics = evaluate_trajectory(test_y_pred, test_y_true, test_y_mask)
+
+    val_readout_pred, val_readout_true = compute_2year_readout(val_y_pred, val_y_true, val_y_mask)
+    test_readout_pred, test_readout_true = compute_2year_readout(test_y_pred, test_y_true, test_y_mask)
+    threshold, val_f1 = find_optimal_threshold(val_readout_true, val_readout_pred, metric='f1')
+    readout_metrics = compute_all_metrics(test_readout_true, test_readout_pred, threshold=threshold)
+    readout_metrics['val_optimal_f1'] = float(val_f1)
     
     print(f"=== Layer 2 Metrics ===")
     print(f"Trajectory MSE: {metrics['trajectory_mse']:.4f}")
@@ -80,6 +96,12 @@ def main():
     
     with open(os.path.join(args.output_dir, f'{args.model_name}_layer2_metrics.json'), 'w') as f:
         json.dump(metrics, f, indent=2)
+
+    readout_serializable = {k: float(v) if isinstance(v, (np.floating, np.integer)) else v
+                            for k, v in readout_metrics.items() if k != 'confusion_matrix'}
+    readout_serializable['confusion_matrix'] = readout_metrics['confusion_matrix'].tolist()
+    with open(os.path.join(args.output_dir, f'{args.model_name}_layer2_readout_metrics.json'), 'w') as f:
+        json.dump(readout_serializable, f, indent=2)
     
     print(f"Metrics saved to: {args.output_dir}\n")
 
