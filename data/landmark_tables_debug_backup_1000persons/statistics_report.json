@@ -1,0 +1,19 @@
+{
+  "total_persons": 991,
+  "total_samples": 2957,
+  "landmark_distribution": {
+    "T0": {
+      "count": 991,
+      "positive_rate": 0.010090817356205853
+    },
+    "T1": {
+      "count": 985,
+      "positive_rate": 0.009137055837563452
+    },
+    "T2": {
+      "count": 981,
+      "positive_rate": 0.014271151885830785
+    }
+  },
+  "feature_dimensions": 39
+}

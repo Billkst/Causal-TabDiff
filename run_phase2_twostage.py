@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 import time
 
 import numpy as np
@@ -7,6 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, WeightedRandomSampler
+from tqdm import tqdm
 
 from src.data.data_module_landmark import load_and_split_data, LandmarkDataset, collate_fn
 from src.models.causal_tabdiff_trajectory import CausalTabDiffTrajectory
@@ -66,6 +68,7 @@ def main():
     parser.add_argument('--finetune_epochs', type=int, default=200)
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--seed', type=int, default=42)
+    parser.add_argument('--num_workers', type=int, default=4)
     args = parser.parse_args()
 
     if args.debug_mode:
@@ -92,9 +95,11 @@ def main():
         n_neg = len(train_labels) - n_pos
         pos_weight_val = n_neg / n_pos if n_pos > 0 else 1.0
 
+        nw = args.num_workers
         train_loader_unsup = DataLoader(
             train_dataset, batch_size=args.batch_size, shuffle=True,
-            collate_fn=collate_fn, num_workers=0, pin_memory=True,
+            collate_fn=collate_fn, num_workers=nw, pin_memory=True,
+            persistent_workers=nw > 0,
         )
 
         if n_pos > 0:
@@ -106,15 +111,18 @@ def main():
             sampler = None
         train_loader_sup = DataLoader(
             train_dataset, batch_size=args.batch_size, sampler=sampler,
-            collate_fn=collate_fn, num_workers=0, pin_memory=True,
+            collate_fn=collate_fn, num_workers=nw, pin_memory=True,
+            persistent_workers=nw > 0,
         )
         val_loader = DataLoader(
             val_dataset, batch_size=args.batch_size, shuffle=False,
-            collate_fn=collate_fn, num_workers=0, pin_memory=True,
+            collate_fn=collate_fn, num_workers=nw, pin_memory=True,
+            persistent_workers=nw > 0,
         )
         test_loader = DataLoader(
             test_dataset, batch_size=args.batch_size, shuffle=False,
-            collate_fn=collate_fn, num_workers=0, pin_memory=True,
+            collate_fn=collate_fn, num_workers=nw, pin_memory=True,
+            persistent_workers=nw > 0,
         )
 
         sample = next(iter(train_loader_unsup))
@@ -147,7 +155,8 @@ def main():
             epoch_start = time.time()
             model.train()
             total_loss = 0.0
-            for batch in train_loader_unsup:
+            pbar = tqdm(train_loader_unsup, desc=f'Pretrain {epoch+1}/{args.pretrain_epochs}', ncols=80, file=sys.stderr)
+            for batch in pbar:
                 x = batch['x'].to(device)
                 alpha = build_alpha_target(batch, device)
                 hl = batch['history_length'].to(device)
@@ -157,11 +166,11 @@ def main():
                 loss.backward()
                 pretrain_opt.step()
                 total_loss += loss.item()
+                pbar.set_postfix(loss=f'{loss.item():.4f}')
 
             avg_loss = total_loss / len(train_loader_unsup)
             et = time.time() - epoch_start
-            if (epoch + 1) % 10 == 0 or epoch == 0:
-                logger.log(f'  Pretrain Epoch {epoch+1}/{args.pretrain_epochs} | Loss {avg_loss:.4f} | Time {et:.1f}s')
+            logger.log(f'  Pretrain {epoch+1}/{args.pretrain_epochs} | Loss {avg_loss:.4f} | Time {et:.1f}s')
 
         for p in model.parameters():
             p.requires_grad = True
@@ -192,7 +201,8 @@ def main():
             model.train()
             total_loss = 0.0
 
-            for batch in train_loader_sup:
+            pbar = tqdm(train_loader_sup, desc=f'Finetune {epoch+1}/{args.finetune_epochs}', ncols=80, file=sys.stderr)
+            for batch in pbar:
                 x = batch['x'].to(device)
                 alpha = build_alpha_target(batch, device)
                 y_2year = batch['y_2year'].to(device)
@@ -214,6 +224,7 @@ def main():
                 torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
                 finetune_opt.step()
                 total_loss += loss.item()
+                pbar.set_postfix(loss=f'{loss.item():.2f}')
 
             train_loss = total_loss / len(train_loader_sup)
             val_y_true, val_y_pred = evaluate_model(model, val_loader, device)

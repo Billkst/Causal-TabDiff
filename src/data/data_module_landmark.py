@@ -126,7 +126,8 @@ def load_and_split_data(table_path, seed=42, debug_n_persons=None):
     
     # Train/val split (60/20 of total)
     train_pid_set = set(train_pids)
-    train_cancer = np.array([pid_has_cancer[list(unique_pids).index(pid)] for pid in train_pids])
+    pid_to_idx = {pid: i for i, pid in enumerate(unique_pids)}
+    train_cancer = np.array([pid_has_cancer[pid_to_idx[pid]] for pid in train_pids])
     train_pids, val_pids = train_test_split(
         train_pids,
         test_size=0.25,  # 0.25 * 0.8 = 0.2

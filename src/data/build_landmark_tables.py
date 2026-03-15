@@ -292,6 +292,6 @@ if __name__ == '__main__':
     builder = LandmarkTableBuilder(
         data_dir='data',
         output_dir='data/landmark_tables',
-        debug_mode=True
+        debug_mode=False
     )
     unified, stats = builder.run_full_pipeline()
