@@ -8,30 +8,54 @@ class CausalTabDiffTrajectory(nn.Module):
         super().__init__()
         self.base_model = CausalTabDiff(t_steps, feature_dim, cond_dim, diffusion_steps)
         self.trajectory_len = trajectory_len
+        self.feature_dim = feature_dim
         
         self.trajectory_head = nn.Sequential(
             nn.Linear(feature_dim, 128),
             nn.ReLU(),
+            nn.Dropout(0.3),
             nn.Linear(128, trajectory_len)
         )
+        
+        self.risk_head = nn.Sequential(
+            nn.Linear(feature_dim, 64),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(64, 1),
+        )
     
-    def forward(self, x, alpha_target):
+    def _masked_mean_pool(self, h, history_length):
+        """Average pooling over valid time steps only, ignoring padding."""
+        B, T, D = h.shape
+        mask = torch.arange(T, device=h.device).unsqueeze(0) < history_length.view(B, 1)
+        mask_f = mask.unsqueeze(2).float()
+        h_sum = (h * mask_f).sum(dim=1)
+        h_pooled = h_sum / mask_f.sum(dim=1).clamp(min=1)
+        return h_pooled
+    
+    def forward(self, x, alpha_target, history_length=None):
         diff_loss, disc_loss = self.base_model(x, alpha_target)
         
         c_emb = self.base_model.cond_mlp(alpha_target)
         h = self.base_model.block1(x, c_emb)
-        h_pooled = h.mean(dim=1)
+        
+        if history_length is not None:
+            h_pooled = self._masked_mean_pool(h, history_length)
+        else:
+            h_pooled = h.mean(dim=1)
         
         trajectory_logits = self.trajectory_head(h_pooled)
         trajectory_probs = torch.sigmoid(trajectory_logits)
         
         risk_2year = self.compute_2year_risk(trajectory_probs)
+        risk_2year_direct = self.risk_head(h_pooled)
         
         return {
             'diff_loss': diff_loss,
             'disc_loss': disc_loss,
             'trajectory': trajectory_probs,
-            'risk_2year': risk_2year
+            'risk_2year': risk_2year,
+            'risk_2year_logit': risk_2year_direct,
         }
     
     def compute_2year_risk(self, trajectory_probs):
