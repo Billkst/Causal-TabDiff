@@ -23,29 +23,34 @@ def compute_ranking_metrics(y_true, y_pred_proba):
 def find_optimal_threshold(y_true, y_pred_proba, metric='f1'):
     y_true = np.asarray(y_true).flatten()
     y_pred_proba = np.asarray(y_pred_proba).flatten()
-    
-    thresholds = np.linspace(0.01, 0.99, 99)
-    best_score = -1
-    best_thresh = 0.5
-    
-    for thresh in thresholds:
-        y_pred_binary = (y_pred_proba >= thresh).astype(int)
-        
-        if metric == 'f1':
-            score = f1_score(y_true, y_pred_binary, zero_division=0)
-        elif metric == 'balanced_acc':
+
+    if metric == 'f1':
+        from sklearn.metrics import precision_recall_curve
+
+        precisions, recalls, thresholds = precision_recall_curve(y_true, y_pred_proba)
+        f1_scores = 2 * (precisions[:-1] * recalls[:-1]) / (precisions[:-1] + recalls[:-1] + 1e-10)
+        best_idx = np.argmax(f1_scores)
+        return float(thresholds[best_idx]), float(f1_scores[best_idx])
+    elif metric == 'balanced_acc':
+        thresholds = np.unique(y_pred_proba)
+        if len(thresholds) > 1000:
+            thresholds = np.linspace(y_pred_proba.min(), y_pred_proba.max(), 1000)
+
+        best_score = -1
+        best_thresh = 0.5
+        for thresh in thresholds:
+            y_pred_binary = (y_pred_proba >= thresh).astype(int)
             tn, fp, fn, tp = confusion_matrix(y_true, y_pred_binary).ravel()
             sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
             specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
             score = (sensitivity + specificity) / 2
-        else:
-            raise ValueError(f"Unknown metric: {metric}")
-        
-        if score > best_score:
-            best_score = score
-            best_thresh = thresh
-    
-    return best_thresh, best_score
+            if score > best_score:
+                best_score = score
+                best_thresh = thresh
+
+        return best_thresh, best_score
+    else:
+        raise ValueError(f"Unknown metric: {metric}")
 
 
 def compute_threshold_metrics(y_true, y_pred_binary):

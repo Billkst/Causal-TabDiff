@@ -7,6 +7,7 @@ import numpy as np
 import sys
 import os
 import time
+from tqdm import tqdm
 sys.path.insert(0, 'src')
 
 from data.data_module_landmark import load_and_split_data, create_dataloaders
@@ -28,7 +29,8 @@ def train_layer2(model, train_loader, val_loader, epochs, device, lr=1e-3):
         model.train()
         train_loss = 0
         with tracker.track_training():
-            for batch in train_loader:
+            pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{epochs}", ncols=100, file=sys.stderr)
+            for batch in pbar:
                 x = batch['x'].to(device)
                 traj_target = batch['trajectory_target'].to(device)
                 traj_mask = batch['trajectory_valid_mask'].to(device)
@@ -49,12 +51,12 @@ def train_layer2(model, train_loader, val_loader, epochs, device, lr=1e-3):
                 loss.backward()
                 optimizer.step()
                 train_loss += loss.item()
+                pbar.set_postfix(loss=f"{train_loss/(pbar.n+1):.4f}")
         
         epoch_time = time.time() - epoch_start
         epoch_times.append(epoch_time)
         
-        if (epoch + 1) % 2 == 0:
-            print(f"Epoch {epoch+1}/{epochs} | Loss {train_loss/len(train_loader):.4f}", flush=True)
+        print(f"Epoch {epoch+1}/{epochs} | Loss {train_loss/len(train_loader):.4f} | Time {epoch_time:.1f}s", flush=True)
     
     tracker.set_epoch_time(np.mean(epoch_times))
     return model, tracker
@@ -93,7 +95,7 @@ def main():
     
     table_path = 'data/landmark_tables/unified_person_landmark_table.pkl'
     train_df, val_df, test_df, landmark_to_idx = load_and_split_data(table_path, seed=args.seed)
-    train_loader, val_loader, test_loader = create_dataloaders(train_df, val_df, test_df, landmark_to_idx, batch_size=64)
+    train_loader, val_loader, test_loader = create_dataloaders(train_df, val_df, test_df, landmark_to_idx, batch_size=64, num_workers=4)
     
     sample = next(iter(train_loader))
     feature_dim = sample['x'].shape[2]

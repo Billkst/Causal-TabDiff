@@ -36,7 +36,7 @@ def main():
 
     table_path = 'data/landmark_tables/unified_person_landmark_table.pkl'
     train_df, val_df, test_df, landmark_to_idx = load_and_split_data(table_path, seed=args.seed)
-    train_loader, val_loader, test_loader = create_dataloaders(train_df, val_df, test_df, landmark_to_idx, batch_size=64)
+    train_loader, val_loader, test_loader = create_dataloaders(train_df, val_df, test_df, landmark_to_idx, batch_size=64, num_workers=4)
 
     sample = next(iter(train_loader))
     seq_len = sample['x'].shape[1]

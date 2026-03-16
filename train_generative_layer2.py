@@ -7,6 +7,7 @@ import numpy as np
 import sys
 import os
 import argparse
+from tqdm import tqdm
 sys.path.insert(0, 'src')
 
 from data.data_module_landmark import load_and_split_data, create_dataloaders
@@ -39,7 +40,7 @@ def main():
     
     table_path = 'data/landmark_tables/unified_person_landmark_table.pkl'
     train_df, val_df, test_df, landmark_to_idx = load_and_split_data(table_path, seed=args.seed)
-    train_loader, val_loader, test_loader = create_dataloaders(train_df, val_df, test_df, landmark_to_idx, batch_size=64)
+    train_loader, val_loader, test_loader = create_dataloaders(train_df, val_df, test_df, landmark_to_idx, batch_size=64, num_workers=4)
     
     sample = next(iter(train_loader))
     feature_dim = sample['x'].shape[2]

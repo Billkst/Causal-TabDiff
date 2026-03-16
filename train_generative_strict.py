@@ -3,7 +3,7 @@ import numpy as np
 import sys
 import os
 import argparse
-import time
+from tqdm import tqdm
 sys.path.insert(0, 'src')
 
 from data.data_module_landmark import load_and_split_data, create_dataloaders
@@ -25,7 +25,7 @@ def main():
     parser.add_argument('--model', type=str, required=True, choices=['tabsyn', 'tabdiff', 'survtraj', 'sssd', 'stasy', 'tsdiff'])
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--epochs', type=int, default=30)
-    parser.add_argument('--n_synthetic', type=int, default=1000)
+    parser.add_argument('--n_synthetic', type=int, default=-1, help='合成样本数量 (-1=与训练集等规模)')
     parser.add_argument('--output_dir', type=str, default='outputs/b2_baseline/tstr')
     args = parser.parse_args()
     
@@ -36,7 +36,12 @@ def main():
     
     table_path = 'data/landmark_tables/unified_person_landmark_table.pkl'
     train_df, val_df, test_df, landmark_to_idx = load_and_split_data(table_path, seed=args.seed)
-    train_loader, val_loader, test_loader = create_dataloaders(train_df, val_df, test_df, landmark_to_idx, batch_size=64)
+    train_loader, val_loader, test_loader = create_dataloaders(train_df, val_df, test_df, landmark_to_idx, batch_size=64, num_workers=4)
+
+    # Auto-compute synthetic sample size to match training set
+    if args.n_synthetic <= 0:
+        args.n_synthetic = len(train_df)
+        print(f"[TSTR] Auto synthetic sample size = {args.n_synthetic} (matching train set)", flush=True)
     
     sample = next(iter(train_loader))
     feature_dim = sample['x'].shape[2]
@@ -62,9 +67,11 @@ def main():
     else:
         raise ValueError(f"Model {args.model} not supported")
     
+    print(f"[TSTR] 训练生成模型 ({args.epochs} epochs)...", flush=True)
     with tracker.track_training():
         model.fit(train_loader, args.epochs, device)
 
+    print(f"[TSTR] 生成 {args.n_synthetic} 合成样本...", flush=True)
     if hasattr(model, 'model') and getattr(model, 'model') is not None:
         tracker.set_model_size(model.model)
     elif hasattr(model, 'vae_model') and getattr(model, 'vae_model') is not None:
@@ -106,8 +113,10 @@ def main():
         scale_pos_weight=scale_pos_weight,
         tree_method='hist',
     )
+    print(f"[TSTR] 训练 XGBoost 下游分类器...", flush=True)
     clf.fit(X_flat, y_syn)
 
+    print(f"[TSTR] 在真实验证/测试集上评估...", flush=True)
     X_val_flat, y_val = extract_xy(val_loader)
     X_test_flat, y_test = extract_xy(test_loader)
     val_pred = clf.predict_proba(X_val_flat)
