@@ -11,6 +11,8 @@ import torch
 import numpy as np
 import sys
 import os
+import time
+from tqdm import tqdm
 
 
 class STaSyLandmarkWrapper:
@@ -84,7 +86,8 @@ class STaSyLandmarkWrapper:
         state = dict(optimizer=optimizer, model=self.model, ema=self.ema, step=0)
         
         for epoch in range(epochs):
-            for batch in train_loader:
+            epoch_start = time.time()
+            for batch in tqdm(train_loader, desc=f"Epoch {epoch+1}/{epochs}", ncols=100, file=sys.stderr):
                 x = batch['x'].cpu().numpy()
                 y = batch['y_2year'].cpu().numpy()
                 
@@ -93,6 +96,8 @@ class STaSyLandmarkWrapper:
                 xy_tensor = torch.tensor(xy, dtype=torch.float32, device=device)
                 
                 train_step_fn(state, xy_tensor)
+            elapsed = time.time() - epoch_start
+            print(f"Epoch {epoch+1}/{epochs} | Time {elapsed:.1f}s", flush=True)
         
         self.fitted = True
     

@@ -10,6 +10,9 @@ SSSD Landmark Wrapper - 严格迁移版
 """
 import torch
 import torch.nn as nn
+import sys
+import time
+from tqdm import tqdm
 
 
 class SSSDLandmarkWrapper:
@@ -55,7 +58,10 @@ class SSSDLandmarkWrapper:
         n_total = 0
         
         for epoch in range(epochs):
-            for batch in train_loader:
+            epoch_start = time.time()
+            epoch_loss = 0.0
+            batch_count = 0
+            for batch in tqdm(train_loader, desc=f"Epoch {epoch+1}/{epochs}", ncols=100, file=sys.stderr):
                 x = batch['x'].to(device)
                 traj = batch['trajectory_target'].to(device)
                 if 'y_2year' in batch:
@@ -75,6 +81,11 @@ class SSSDLandmarkWrapper:
                 loss = nn.functional.mse_loss(pred_noise, noise)
                 loss.backward()
                 optimizer.step()
+                epoch_loss += float(loss.detach().item())
+                batch_count += 1
+            avg_loss = epoch_loss / max(batch_count, 1)
+            elapsed = time.time() - epoch_start
+            print(f"Epoch {epoch+1}/{epochs} | Loss {avg_loss:.4f} | Time {elapsed:.1f}s", flush=True)
 
         if n_total > 0:
             self.train_pos_rate = max(1.0 / n_total, pos_total / n_total)

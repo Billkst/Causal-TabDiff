@@ -11,6 +11,8 @@ import torch
 import torch.nn as nn
 import sys
 import os
+import time
+from tqdm import tqdm
 
 
 class TabSynLandmarkStrictWrapper:
@@ -46,7 +48,10 @@ class TabSynLandmarkStrictWrapper:
         vae_epochs = min(epochs // 2, 100)
         
         for epoch in range(vae_epochs):
-            for batch in train_loader:
+            epoch_start = time.time()
+            epoch_loss = 0.0
+            batch_count = 0
+            for batch in tqdm(train_loader, desc=f"VAE Epoch {epoch+1}/{vae_epochs}", ncols=100, file=sys.stderr):
                 x = batch['x'].to(device)
                 y = batch['y_2year'].to(device)
                 x_flat = x.reshape(x.shape[0], -1)
@@ -59,6 +64,11 @@ class TabSynLandmarkStrictWrapper:
                 loss = recon_loss + 0.001 * kl_loss
                 loss.backward()
                 vae_optimizer.step()
+                epoch_loss += float(loss.detach().item())
+                batch_count += 1
+            avg_loss = epoch_loss / max(batch_count, 1)
+            elapsed = time.time() - epoch_start
+            print(f"VAE Epoch {epoch+1}/{vae_epochs} | Loss {avg_loss:.4f} | Time {elapsed:.1f}s", flush=True)
         
         # Stage 2: Diffusion training with EDM Loss
         denoise_fn = MLPDiffusion(self.total_dim, dim_t=128).to(device)
@@ -71,7 +81,10 @@ class TabSynLandmarkStrictWrapper:
         diff_epochs = epochs - vae_epochs
         
         for epoch in range(diff_epochs):
-            for batch in train_loader:
+            epoch_start = time.time()
+            epoch_loss = 0.0
+            batch_count = 0
+            for batch in tqdm(train_loader, desc=f"Diff Epoch {epoch+1}/{diff_epochs}", ncols=100, file=sys.stderr):
                 x = batch['x'].to(device)
                 y = batch['y_2year'].to(device)
                 x_flat = x.reshape(x.shape[0], -1)
@@ -81,6 +94,11 @@ class TabSynLandmarkStrictWrapper:
                 loss = self.diffusion_model(xy)
                 loss.backward()
                 diff_optimizer.step()
+                epoch_loss += float(loss.detach().item())
+                batch_count += 1
+            avg_loss = epoch_loss / max(batch_count, 1)
+            elapsed = time.time() - epoch_start
+            print(f"Diff Epoch {epoch+1}/{diff_epochs} | Loss {avg_loss:.4f} | Time {elapsed:.1f}s", flush=True)
         
         self.fitted = True
     

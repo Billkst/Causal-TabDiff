@@ -71,7 +71,6 @@ def main():
     with tracker.track_training():
         model.fit(train_loader, args.epochs, device)
 
-    print(f"[TSTR] 生成 {args.n_synthetic} 合成样本...", flush=True)
     if hasattr(model, 'model') and getattr(model, 'model') is not None:
         tracker.set_model_size(model.model)
     elif hasattr(model, 'vae_model') and getattr(model, 'vae_model') is not None:
@@ -81,15 +80,28 @@ def main():
     elif hasattr(model, 'diffusion_model') and getattr(model, 'diffusion_model') is not None:
         tracker.set_model_size(model.diffusion_model)
     
-    sample_out = model.sample(args.n_synthetic, device)
-    if isinstance(sample_out, tuple) and len(sample_out) >= 2:
-        X_syn = sample_out[0]
-        Y_syn = sample_out[1]
-    else:
-        raise ValueError('sample() must return at least (X_syn, Y_syn)')
+    SAMPLE_BATCH = 2048
+    n_total = args.n_synthetic
+    X_parts, Y_parts = [], []
+    n_done = 0
+    print(f"[TSTR] 生成 {n_total} 合成样本 (batch={SAMPLE_BATCH})...", flush=True)
+    while n_done < n_total:
+        chunk = min(SAMPLE_BATCH, n_total - n_done)
+        torch.cuda.empty_cache()
+        sample_out = model.sample(chunk, device)
+        if isinstance(sample_out, tuple) and len(sample_out) >= 2:
+            X_parts.append(sample_out[0].cpu())
+            Y_parts.append(sample_out[1].cpu())
+        else:
+            raise ValueError('sample() must return at least (X_syn, Y_syn)')
+        n_done += chunk
+        print(f"  生成进度: {n_done}/{n_total}", flush=True)
 
-    X_flat = X_syn.cpu().numpy().reshape(X_syn.shape[0], -1)
-    y_syn = Y_syn.cpu().numpy().flatten()
+    X_syn = torch.cat(X_parts, dim=0)
+    Y_syn = torch.cat(Y_parts, dim=0)
+
+    X_flat = X_syn.numpy().reshape(X_syn.shape[0], -1)
+    y_syn = Y_syn.numpy().flatten()
     print(
         f"Synthetic label stats | unique={np.unique(y_syn)} | pos_rate={float(np.mean(y_syn)):.4f}",
         flush=True,

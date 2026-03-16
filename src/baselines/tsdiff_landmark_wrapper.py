@@ -4,6 +4,9 @@ TSDiff Landmark Wrapper - 最小化重写版本
 import torch
 import torch.nn as nn
 import numpy as np
+import sys
+import time
+from tqdm import tqdm
 
 
 class TSDiffLandmarkWrapper:
@@ -21,7 +24,10 @@ class TSDiffLandmarkWrapper:
         optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3)
         
         for epoch in range(epochs):
-            for batch in train_loader:
+            epoch_start = time.time()
+            epoch_loss = 0.0
+            batch_count = 0
+            for batch in tqdm(train_loader, desc=f"Epoch {epoch+1}/{epochs}", ncols=100, file=sys.stderr):
                 x = batch['x'].to(device)
                 y = batch['y_2year'].to(device)
                 
@@ -32,6 +38,11 @@ class TSDiffLandmarkWrapper:
                 loss = self.model.train_step(xy)
                 loss.backward()
                 optimizer.step()
+                epoch_loss += float(loss.detach().item())
+                batch_count += 1
+            avg_loss = epoch_loss / max(batch_count, 1)
+            elapsed = time.time() - epoch_start
+            print(f"Epoch {epoch+1}/{epochs} | Loss {avg_loss:.4f} | Time {elapsed:.1f}s", flush=True)
         
         self.fitted = True
     
