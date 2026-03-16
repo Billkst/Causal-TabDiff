@@ -82,7 +82,7 @@ class TSTRPipeline:
             raise RuntimeError("分类器未训练，请先调用 train_downstream_classifier()")
         
         if len(X_real.shape) == 3:
-            X_flat = X_real[:, -1, :]
+            X_flat = X_real.reshape(X_real.shape[0], -1)
         else:
             X_flat = X_real
         
