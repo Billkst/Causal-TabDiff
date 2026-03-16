@@ -11,7 +11,9 @@ import torch
 import torch.nn as nn
 import sys
 import os
+import time
 import numpy as np
+from tqdm import tqdm
 
 
 class TabDiffLandmarkStrictWrapper:
@@ -61,7 +63,10 @@ class TabDiffLandmarkStrictWrapper:
         n_total = 0
         
         for epoch in range(epochs):
-            for batch in train_loader:
+            epoch_start = time.time()
+            epoch_loss = 0.0
+            batch_count = 0
+            for batch in tqdm(train_loader, desc=f"Epoch {epoch+1}/{epochs}", ncols=100, file=sys.stderr):
                 x = batch['x'].to(device)
                 y = batch['y_2year'].to(device)
                 pos_total += float(y.sum().item())
@@ -74,6 +79,11 @@ class TabDiffLandmarkStrictWrapper:
                 loss = d_loss + c_loss
                 loss.backward()
                 optimizer.step()
+                epoch_loss += float((d_loss + c_loss).detach().item())
+                batch_count += 1
+            avg_loss = epoch_loss / max(batch_count, 1)
+            elapsed = time.time() - epoch_start
+            print(f"Epoch {epoch+1}/{epochs} | Loss {avg_loss:.4f} | Time {elapsed:.1f}s", flush=True)
 
         if n_total > 0:
             self.train_pos_rate = max(1.0 / n_total, pos_total / n_total)

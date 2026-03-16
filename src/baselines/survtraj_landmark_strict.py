@@ -10,7 +10,10 @@ SurvTraj Landmark Wrapper - 严格迁移版
 """
 import torch
 import torch.nn as nn
+import sys
+import time
 import numpy as np
+from tqdm import tqdm
 
 
 class SurvTrajLandmarkWrapper:
@@ -78,8 +81,11 @@ class SurvTrajLandmarkWrapper:
         optimizer = torch.optim.Adam(self.vae.parameters(), lr=1e-3)
         
         for epoch in range(epochs):
+            epoch_start = time.time()
+            epoch_loss = 0.0
+            batch_count = 0
             indices = torch.randperm(X_train.shape[0])
-            for i in range(0, X_train.shape[0], 32):
+            for i in tqdm(range(0, X_train.shape[0], 32), desc=f"Epoch {epoch+1}/{epochs}", ncols=100, file=sys.stderr):
                 batch_idx = indices[i:i+32]
                 x_batch = X_train[batch_idx]
                 traj_batch = Traj_train[batch_idx]
@@ -92,6 +98,11 @@ class SurvTrajLandmarkWrapper:
                 loss = recon_loss_x + recon_loss_traj + 0.001 * kl_loss
                 loss.backward()
                 optimizer.step()
+                epoch_loss += float(loss.detach().item())
+                batch_count += 1
+            avg_loss = epoch_loss / max(batch_count, 1)
+            elapsed = time.time() - epoch_start
+            print(f"Epoch {epoch+1}/{epochs} | Loss {avg_loss:.4f} | Time {elapsed:.1f}s", flush=True)
         
         self.fitted = True
     
