@@ -102,6 +102,19 @@ def main():
 
     X_flat = X_syn.numpy().reshape(X_syn.shape[0], -1)
     y_syn = Y_syn.numpy().flatten()
+
+    # Sanitize: clip inf/nan in synthetic features (some diffusion models produce extreme values)
+    n_inf = np.sum(~np.isfinite(X_flat))
+    if n_inf > 0:
+        print(f"[WARN] X_syn contains {n_inf} inf/nan values, clipping to [-1e6, 1e6]", flush=True)
+        X_flat = np.nan_to_num(X_flat, nan=0.0, posinf=1e6, neginf=-1e6)
+        X_flat = np.clip(X_flat, -1e6, 1e6)
+
+    # Ensure y_syn is binary 0/1 (some models return continuous values)
+    if not np.all(np.isin(y_syn, [0, 1])):
+        print(f"[WARN] y_syn not binary, converting via threshold 0.5", flush=True)
+        y_syn = (y_syn > 0.5).astype(float)
+
     print(
         f"Synthetic label stats | unique={np.unique(y_syn)} | pos_rate={float(np.mean(y_syn)):.4f}",
         flush=True,

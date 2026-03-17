@@ -55,7 +55,7 @@ class TSDiffLandmarkWrapper:
         samples = samples.squeeze(1)
         
         X_syn = samples[:, :-1].reshape(n_samples, self.seq_len, self.feature_dim)
-        Y_syn = samples[:, -1:]
+        Y_syn = (torch.sigmoid(samples[:, -1:]) > 0.5).float()
         
         return X_syn, Y_syn
     
