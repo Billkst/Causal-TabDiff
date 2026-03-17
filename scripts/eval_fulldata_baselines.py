@@ -25,7 +25,17 @@ SEEDS = [42, 52, 62, 72, 82]
 
 def fmt(values):
     """格式化 mean ± std"""
-    vals = [float(v) for v in values if v is not None and np.isfinite(float(v))]
+    clean = []
+    for v in values:
+        if v is None:
+            continue
+        try:
+            fv = float(v)
+            if np.isfinite(fv):
+                clean.append(fv)
+        except (ValueError, TypeError):
+            continue
+    vals = clean
     if not vals:
         return 'N/A'
     arr = np.array(vals, dtype=float)
@@ -112,10 +122,15 @@ def evaluate_layer2_prediction(pred_file, output_dir, model_name):
     valid_pred = tp[tm > 0]
     valid_true = tt[tm > 0]
 
+    finite_mask = np.isfinite(valid_pred) & np.isfinite(valid_true)
+    valid_pred = valid_pred[finite_mask]
+    valid_true = valid_true[finite_mask]
+
     traj_metrics = {
         'trajectory_mse': float(mean_squared_error(valid_true, valid_pred)) if len(valid_pred) > 0 else float('nan'),
         'trajectory_mae': float(mean_absolute_error(valid_true, valid_pred)) if len(valid_pred) > 0 else float('nan'),
         'valid_coverage': float(tm.sum() / tm.size) if tm.size > 0 else 0.0,
+        'n_nan_filtered': int((~finite_mask).sum()),
     }
 
     os.makedirs(output_dir, exist_ok=True)
@@ -123,11 +138,13 @@ def evaluate_layer2_prediction(pred_file, output_dir, model_name):
         json.dump(traj_metrics, f, indent=2)
 
     # Readout 分类指标: 从轨迹读出 2-year risk
-    pred_2year = test_y_pred[:, :2].mean(axis=1)
+    pred_2year = np.nan_to_num(test_y_pred[:, :2], nan=0.0, posinf=1e6, neginf=-1e6).mean(axis=1)
+    pred_2year = np.clip(pred_2year, -500, 500)
     pred_2year = 1.0 / (1.0 + np.exp(-pred_2year))
     true_2year = (test_y_true[:, :2].sum(axis=1) > 0).astype(int)
 
-    val_pred_2year = val_y_pred[:, :2].mean(axis=1)
+    val_pred_2year = np.nan_to_num(val_y_pred[:, :2], nan=0.0, posinf=1e6, neginf=-1e6).mean(axis=1)
+    val_pred_2year = np.clip(val_pred_2year, -500, 500)
     val_pred_2year = 1.0 / (1.0 + np.exp(-val_pred_2year))
     val_true_2year = (val_y_true[:, :2].sum(axis=1) > 0).astype(int)
 

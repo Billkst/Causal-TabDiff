@@ -74,6 +74,16 @@ class STaSyLandmarkWrapper:
         config.data = ml_collections.ConfigDict()
         config.data.image_size = self.total_dim
         
+        config.sampling = ml_collections.ConfigDict()
+        config.sampling.method = 'pc'
+        config.sampling.predictor = 'euler_maruyama'
+        config.sampling.corrector = 'none'
+        config.sampling.n_steps_each = 1
+        config.sampling.snr = 0.16
+        config.sampling.noise_removal = True
+        config.sampling.probability_flow = False
+        
+        self.config = config
         self.model = stasy_mutils.create_model(config).to(device)
         self.ema = ExponentialMovingAverage(self.model.parameters(), decay=config.model.ema_rate)
         optimizer = stasy_losses.get_optimizer(config, self.model.parameters())
@@ -81,7 +91,8 @@ class STaSyLandmarkWrapper:
         
         optimize_fn = stasy_losses.optimization_manager(config)
         train_step_fn = stasy_losses.get_step_fn(self.sde, train=True, optimize_fn=optimize_fn,
-                                                 reduce_mean=True, continuous=True, likelihood_weighting=False)
+                                                 reduce_mean=True, continuous=True, likelihood_weighting=False,
+                                                 spl=False)
         
         state = dict(optimizer=optimizer, model=self.model, ema=self.ema, step=0)
         
@@ -108,7 +119,7 @@ class STaSyLandmarkWrapper:
         import sampling
         
         sampling_shape = (n_samples, self.total_dim)
-        sampling_fn = sampling.get_sampling_fn(None, self.sde, sampling_shape, lambda x: x, eps=1e-5)
+        sampling_fn = sampling.get_sampling_fn(self.config, self.sde, sampling_shape, lambda x: x, eps=1e-5)
         
         self.ema.copy_to(self.model.parameters())
         samples, _ = sampling_fn(self.model, sampling_shape=sampling_shape)
