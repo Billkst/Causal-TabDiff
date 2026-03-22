@@ -30,7 +30,11 @@ def evaluate_trajectory(y_pred, y_true, y_mask):
             'trajectory_mae': np.nan,
             'valid_coverage': 0.0
         }
-    
+
+    # 统一到概率空间: 回归模型输出 logits 需要 sigmoid
+    if valid_pred.min() < -0.01 or valid_pred.max() > 1.01:
+        valid_pred = 1.0 / (1.0 + np.exp(-np.clip(valid_pred, -500, 500)))
+
     mse = mean_squared_error(valid_true, valid_pred)
     mae = mean_absolute_error(valid_true, valid_pred)
     coverage = y_mask.sum() / y_mask.size
@@ -44,11 +48,14 @@ def evaluate_trajectory(y_pred, y_true, y_mask):
 
 def compute_2year_readout(y_pred, y_true, y_mask):
     """从 trajectory 读出 2-year risk"""
-    # 假设前2个时间步对应 2-year risk
-    pred_2year = y_pred[:, :2].mean(axis=1)
-    pred_2year = 1.0 / (1.0 + np.exp(-pred_2year))
+    raw = y_pred[:, :2].mean(axis=1)
+    # 概率输出 ([0,1]) 直接用; logits 需要 sigmoid
+    if raw.min() < -0.01 or raw.max() > 1.01:
+        pred_2year = 1.0 / (1.0 + np.exp(-np.clip(raw, -500, 500)))
+    else:
+        pred_2year = np.clip(raw, 0.0, 1.0)
     true_2year = (y_true[:, :2].sum(axis=1) > 0).astype(int)
-    
+
     return pred_2year, true_2year
 
 
