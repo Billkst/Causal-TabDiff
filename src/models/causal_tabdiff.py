@@ -25,15 +25,21 @@ class PreAdaGN(nn.Module):
         return x * (gamma + 1.0) + beta
 
 class OrthogonalDualAttentionBlock(nn.Module):
-    def __init__(self, dim, t_steps, cond_dim, heads=1):
+    def __init__(self, dim, t_steps, cond_dim, heads=1,
+                 use_time_attn=True, use_feat_attn=True):
         super().__init__()
-        self.ada_gn_time = PreAdaGN(dim, cond_dim)
-        # Using 1 head to avoid divisibility assertion errors with arbitrary D_prime/t_steps dimensions
-        self.time_attn = nn.MultiheadAttention(embed_dim=dim, num_heads=1, batch_first=True)
+        self.use_time_attn = use_time_attn
+        self.use_feat_attn = use_feat_attn
+
+        if use_time_attn:
+            self.ada_gn_time = PreAdaGN(dim, cond_dim)
+            # Using 1 head to avoid divisibility assertion errors with arbitrary D_prime/t_steps dimensions
+            self.time_attn = nn.MultiheadAttention(embed_dim=dim, num_heads=1, batch_first=True)
         
-        # When we permute, the sequence is dim, and the feature (embed_dim) becomes t_steps
-        self.ada_gn_feat = PreAdaGN(t_steps, cond_dim)
-        self.feat_attn = nn.MultiheadAttention(embed_dim=t_steps, num_heads=1, batch_first=True)
+        if use_feat_attn:
+            # When we permute, the sequence is dim, and the feature (embed_dim) becomes t_steps
+            self.ada_gn_feat = PreAdaGN(t_steps, cond_dim)
+            self.feat_attn = nn.MultiheadAttention(embed_dim=t_steps, num_heads=1, batch_first=True)
         
         self.ffn = nn.Sequential(
             nn.Linear(dim, dim * 4),
@@ -48,30 +54,32 @@ class OrthogonalDualAttentionBlock(nn.Module):
         If we want time attention, sequence is T, embed is D_prime.
         """
         # --- Time Attention (Sequence = T, Embed = D_prime) ---
-        res = x
-        x_time = self.ada_gn_time(x, c)
-        x_attn_time, _ = self.time_attn(x_time, x_time, x_time) # Eq 29
-        x = res + x_attn_time
+        if self.use_time_attn:
+            res = x
+            x_time = self.ada_gn_time(x, c)
+            x_attn_time, _ = self.time_attn(x_time, x_time, x_time) # Eq 29
+            x = res + x_attn_time
         
         # --- Feature Attention (Sequence = D_prime, Embed = T) ---
-        # Permute: [B, T, D_prime] -> [B, D_prime, T]
-        x_perm = x.transpose(1, 2)
-        res_feat = x_perm
-        
-        # NOTE: PreAdaGN expects the last dimension to match `dim`.
-        # For permutation to work flawlessly, we assume time and feat embed dims are handled symmetrically
-        # or we flatten. Here we simplify by treating the transposed tensor directly if they are square, 
-        # or we project. To strictly adhere to the proposal: 
-        # "Permutation is key to spatial-temporal decoupling."
-        
-        # Simple transposition for feature attention is conceptual. In practice we might need another Linear projection.
-        # Let's mock the feat attention for structural completeness
-        x_feat = self.ada_gn_feat(x_perm, c)
-        x_attn_feat, _ = self.feat_attn(x_feat, x_feat, x_feat) # Eq 32
-        x_perm = res_feat + x_attn_feat
-        
-        # Permute back
-        x = x_perm.transpose(1, 2)
+        if self.use_feat_attn:
+            # Permute: [B, T, D_prime] -> [B, D_prime, T]
+            x_perm = x.transpose(1, 2)
+            res_feat = x_perm
+            
+            # NOTE: PreAdaGN expects the last dimension to match `dim`.
+            # For permutation to work flawlessly, we assume time and feat embed dims are handled symmetrically
+            # or we flatten. Here we simplify by treating the transposed tensor directly if they are square, 
+            # or we project. To strictly adhere to the proposal: 
+            # "Permutation is key to spatial-temporal decoupling."
+            
+            # Simple transposition for feature attention is conceptual. In practice we might need another Linear projection.
+            # Let's mock the feat attention for structural completeness
+            x_feat = self.ada_gn_feat(x_perm, c)
+            x_attn_feat, _ = self.feat_attn(x_feat, x_feat, x_feat) # Eq 32
+            x_perm = res_feat + x_attn_feat
+            
+            # Permute back
+            x = x_perm.transpose(1, 2)
         
         # FFN
         x = x + self.ffn(x)
@@ -109,7 +117,8 @@ class CausalTabDiff(nn.Module):
        Moves the mean of the reverse diffusion step towards the low-energy (causally sound) regions.
        $$\mathbf{x}_{t-1} = \pmb{\mu}_{\theta}(\mathbf{x}_t) - s \cdot \sigma_t \cdot \nabla_{\mathbf{x}_t} U(\mathbf{x}_t) + \sigma_t\mathbf{z}$$
     """
-    def __init__(self, t_steps=3, feature_dim=12, cond_dim=1, diffusion_steps=1000, heads=4, use_noise_head=True):
+    def __init__(self, t_steps=3, feature_dim=12, cond_dim=1, diffusion_steps=1000, heads=4, use_noise_head=True,
+                 use_time_attn=True, use_feat_attn=True):
         super().__init__()
         self.diffusion_steps = diffusion_steps
         self.feature_dim = feature_dim
@@ -120,7 +129,8 @@ class CausalTabDiff(nn.Module):
         self.cond_mlp = nn.Sequential(nn.Linear(cond_dim, 64), nn.SiLU(), nn.Linear(64, feature_dim))
         
         # Backbone
-        self.block1 = OrthogonalDualAttentionBlock(dim=feature_dim, t_steps=t_steps, cond_dim=feature_dim, heads=heads)
+        self.block1 = OrthogonalDualAttentionBlock(dim=feature_dim, t_steps=t_steps, cond_dim=feature_dim, heads=heads,
+                                                   use_time_attn=use_time_attn, use_feat_attn=use_feat_attn)
         
         # Time embedding for t
         self.time_mlp = nn.Sequential(

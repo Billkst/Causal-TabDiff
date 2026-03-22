@@ -88,22 +88,56 @@ def compute_threshold_metrics(y_true, y_pred_binary):
 
 
 def compute_calibration_metrics(y_true, y_pred_proba):
+    """计算校准指标: Brier Score + E/O Ratio.
+
+    E/O ratio = mean(predicted) / mean(observed).
+    完美校准 = 1.0; >1 高估风险; <1 低估风险.
+    替代了原先不稳定的 calibration_intercept / calibration_slope.
+    """
     y_true = np.asarray(y_true).flatten()
     y_pred_proba = np.asarray(y_pred_proba).flatten()
-    
+
     brier = brier_score_loss(y_true, y_pred_proba)
-    
-    lr = LogisticRegression(max_iter=1000)
-    lr.fit(y_pred_proba.reshape(-1, 1), y_true)
-    
-    intercept = lr.intercept_[0]
-    slope = lr.coef_[0][0]
-    
+
+    mean_pred = float(np.mean(y_pred_proba))
+    mean_obs = float(np.mean(y_true))
+    eo_ratio = mean_pred / mean_obs if mean_obs > 0 else float('nan')
+
     return {
         'brier_score': brier,
-        'calibration_intercept': intercept,
-        'calibration_slope': slope
+        'eo_ratio': eo_ratio,
     }
+
+
+def platt_calibrate(val_y_true, val_y_pred, test_y_pred):
+    """Platt Scaling: 在验证集 logits 上拟合 LogisticRegression，校准测试集概率.
+
+    排序不变 (AUROC/AUPRC 保持一致)，只改变概率值.
+
+    Args:
+        val_y_true: 验证集真实标签 (0/1)
+        val_y_pred: 验证集预测概率 [0, 1]
+        test_y_pred: 测试集预测概率 [0, 1]
+
+    Returns:
+        test_pred_calibrated: 校准后的测试集概率
+    """
+    val_y_true = np.asarray(val_y_true).flatten()
+    val_y_pred = np.asarray(val_y_pred).flatten()
+    test_y_pred = np.asarray(test_y_pred).flatten()
+
+    eps = 1e-7
+    val_logits = np.log(
+        np.clip(val_y_pred, eps, 1 - eps) / (1 - np.clip(val_y_pred, eps, 1 - eps))
+    )
+    test_logits = np.log(
+        np.clip(test_y_pred, eps, 1 - eps) / (1 - np.clip(test_y_pred, eps, 1 - eps))
+    )
+
+    lr = LogisticRegression(max_iter=1000, solver='lbfgs')
+    lr.fit(val_logits.reshape(-1, 1), val_y_true)
+    test_calibrated = lr.predict_proba(test_logits.reshape(-1, 1))[:, 1]
+    return test_calibrated
 
 
 def compute_all_metrics(y_true, y_pred_proba, threshold=None, val_y_true=None, val_y_pred_proba=None):
@@ -112,13 +146,13 @@ def compute_all_metrics(y_true, y_pred_proba, threshold=None, val_y_true=None, v
             threshold, _ = find_optimal_threshold(val_y_true, val_y_pred_proba, metric='f1')
         else:
             threshold = 0.5
-    
+
     y_pred_binary = (y_pred_proba >= threshold).astype(int)
-    
+
     ranking = compute_ranking_metrics(y_true, y_pred_proba)
     threshold_metrics = compute_threshold_metrics(y_true, y_pred_binary)
     calibration = compute_calibration_metrics(y_true, y_pred_proba)
-    
+
     return {
         **ranking,
         **threshold_metrics,

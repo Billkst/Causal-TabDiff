@@ -126,6 +126,10 @@ def evaluate_layer2_prediction(pred_file, output_dir, model_name):
     valid_pred = valid_pred[finite_mask]
     valid_true = valid_true[finite_mask]
 
+    # 统一到概率空间: 回归模型 (iTransformer/TimeXer) 输出 logits, 需要 sigmoid
+    if len(valid_pred) > 0 and (valid_pred.min() < -0.01 or valid_pred.max() > 1.01):
+        valid_pred = 1.0 / (1.0 + np.exp(-np.clip(valid_pred, -500, 500)))
+
     traj_metrics = {
         'trajectory_mse': float(mean_squared_error(valid_true, valid_pred)) if len(valid_pred) > 0 else float('nan'),
         'trajectory_mae': float(mean_absolute_error(valid_true, valid_pred)) if len(valid_pred) > 0 else float('nan'),
@@ -137,15 +141,19 @@ def evaluate_layer2_prediction(pred_file, output_dir, model_name):
     with open(os.path.join(output_dir, f'{model_name}_layer2_metrics.json'), 'w') as f:
         json.dump(traj_metrics, f, indent=2)
 
-    # Readout 分类指标: 从轨迹读出 2-year risk
-    pred_2year = np.nan_to_num(test_y_pred[:, :2], nan=0.0, posinf=1e6, neginf=-1e6).mean(axis=1)
-    pred_2year = np.clip(pred_2year, -500, 500)
-    pred_2year = 1.0 / (1.0 + np.exp(-pred_2year))
+    # Readout: 从轨迹读出 2-year risk
+    # 概率模型 (SSSD, CausalTabDiff) 输出 [0,1] → 直接用
+    # 回归模型 (iTransformer, TimeXer) 输出 logits → 需要 sigmoid
+    def _readout_to_prob(raw_2d):
+        clean = np.nan_to_num(raw_2d, nan=0.0, posinf=1e6, neginf=-1e6).mean(axis=1)
+        if clean.min() < -0.01 or clean.max() > 1.01:
+            return 1.0 / (1.0 + np.exp(-np.clip(clean, -500, 500)))
+        return np.clip(clean, 0.0, 1.0)
+
+    pred_2year = _readout_to_prob(test_y_pred[:, :2])
     true_2year = (test_y_true[:, :2].sum(axis=1) > 0).astype(int)
 
-    val_pred_2year = np.nan_to_num(val_y_pred[:, :2], nan=0.0, posinf=1e6, neginf=-1e6).mean(axis=1)
-    val_pred_2year = np.clip(val_pred_2year, -500, 500)
-    val_pred_2year = 1.0 / (1.0 + np.exp(-val_pred_2year))
+    val_pred_2year = _readout_to_prob(val_y_pred[:, :2])
     val_true_2year = (val_y_true[:, :2].sum(axis=1) > 0).astype(int)
 
     threshold, val_f1 = find_optimal_threshold(val_true_2year, val_pred_2year, metric='f1')
@@ -226,7 +234,7 @@ def generate_summary_tables(formal_dir, summary_dir):
     os.makedirs(summary_dir, exist_ok=True)
     metric_cols = ['auroc', 'auprc', 'f1', 'precision', 'recall', 'specificity',
                    'npv', 'accuracy', 'balanced_accuracy', 'mcc',
-                   'brier_score', 'calibration_intercept', 'calibration_slope']
+                   'brier_score', 'eo_ratio']
 
     # --- Layer1 Direct ---
     print("\n生成 baseline_layer1_direct.csv ...", flush=True)
@@ -288,7 +296,7 @@ def generate_summary_tables(formal_dir, summary_dir):
             vals = collect_metric(formal_dir, 'layer2', f'{stem}_seed{{seed}}_layer2_metrics.json', traj_key)
             row[traj_key] = fmt(vals)
         for read_key in ['auroc', 'auprc', 'f1', 'precision', 'recall', 'brier_score',
-                         'calibration_intercept', 'calibration_slope']:
+                         'eo_ratio']:
             vals = collect_metric(formal_dir, 'layer2', f'{stem}_seed{{seed}}_layer2_readout_metrics.json', read_key)
             row[f'readout_{read_key}'] = fmt(vals)
         row['seeds_used'] = ','.join(map(str, SEEDS))

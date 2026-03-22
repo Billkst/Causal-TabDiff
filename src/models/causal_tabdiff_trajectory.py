@@ -4,9 +4,11 @@ import torch.nn.functional as F
 from .causal_tabdiff import CausalTabDiff
 
 class CausalTabDiffTrajectory(nn.Module):
-    def __init__(self, t_steps, feature_dim, diffusion_steps=100, trajectory_len=7, cond_dim=1):
+    def __init__(self, t_steps, feature_dim, diffusion_steps=100, trajectory_len=7, cond_dim=1,
+                 use_time_attn=True, use_feat_attn=True):
         super().__init__()
-        self.base_model = CausalTabDiff(t_steps, feature_dim, cond_dim, diffusion_steps)
+        self.base_model = CausalTabDiff(t_steps, feature_dim, cond_dim, diffusion_steps,
+                                        use_time_attn=use_time_attn, use_feat_attn=use_feat_attn)
         self.trajectory_len = trajectory_len
         self.feature_dim = feature_dim
         
