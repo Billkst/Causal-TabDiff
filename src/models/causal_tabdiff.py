@@ -299,7 +299,7 @@ class CausalTabDiff(nn.Module):
             diff_loss = diff_loss + float(batch_moment_weight) * moment_loss
         
         # 2. Discriminator Loss (Energy function training)
-        alpha_pred = self.discriminator(x_t.detach())
+        alpha_pred = self.discriminator(x_t)
         disc_loss = F.mse_loss(alpha_pred, alpha_target)
 
         if y_target is None:
