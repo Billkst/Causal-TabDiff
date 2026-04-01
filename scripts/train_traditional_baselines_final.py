@@ -5,6 +5,7 @@ import os
 import sys
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler
 from xgboost import XGBClassifier
 
 sys.path.insert(0, 'src')
@@ -19,7 +20,7 @@ def extract_features(df):
     y = df['y_2year'].values
     return X, y
 
-def train_and_evaluate(model_name, model, train_df, val_df, test_df, seed, output_dir):
+def train_and_evaluate(model_name, model, train_df, val_df, test_df, seed, output_dir, use_scaler=False):
     print(f"\n{'='*60}", flush=True)
     print(f"Training {model_name} (seed={seed})", flush=True)
     print(f"{'='*60}", flush=True)
@@ -28,6 +29,13 @@ def train_and_evaluate(model_name, model, train_df, val_df, test_df, seed, outpu
     X_train, y_train = extract_features(train_df)
     X_val, y_val = extract_features(val_df)
     X_test, y_test = extract_features(test_df)
+    
+    if use_scaler:
+        print("Applying StandardScaler...", flush=True)
+        scaler = StandardScaler()
+        X_train = scaler.fit_transform(X_train)
+        X_val = scaler.transform(X_val)
+        X_test = scaler.transform(X_test)
     
     print(f"Train: {X_train.shape}, Val: {X_val.shape}, Test: {X_test.shape}", flush=True)
     print(f"Positive rate - Train: {y_train.mean():.4f}, Val: {y_val.mean():.4f}, Test: {y_test.mean():.4f}", flush=True)
@@ -81,8 +89,8 @@ def main():
     models_to_run = args.models.lower().split(',')
     
     if 'lr' in models_to_run:
-        lr = LogisticRegression(max_iter=1000, class_weight='balanced', random_state=args.seed)
-        train_and_evaluate('LogisticRegression', lr, train_df, val_df, test_df, args.seed, args.output_dir)
+        lr = LogisticRegression(max_iter=5000, class_weight='balanced', random_state=args.seed)
+        train_and_evaluate('LogisticRegression', lr, train_df, val_df, test_df, args.seed, args.output_dir, use_scaler=True)
     
     if 'rf' in models_to_run:
         rf = RandomForestClassifier(n_estimators=100, class_weight='balanced', random_state=args.seed, n_jobs=-1)
