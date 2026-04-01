@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader, WeightedRandomSampler
 from tqdm import tqdm
 
 from src.data.data_module_landmark import load_and_split_data, LandmarkDataset, collate_fn
+from src.data.data_module_landmark_cached import LandmarkDatasetCached
 from src.models.causal_tabdiff_trajectory import CausalTabDiffTrajectory
 from src.utils.training_logger import TrainingLogger
 from src.evaluation.metrics import (
@@ -44,6 +45,16 @@ def evaluate_model(model, dataloader, device):
     return np.concatenate(all_y_true).flatten(), np.concatenate(all_y_pred).flatten()
 
 
+def focal_loss_with_logits(logits, targets, gamma=2.0, pos_weight=None):
+    bce_loss = F.binary_cross_entropy_with_logits(logits, targets, reduction='none')
+    pt = torch.exp(-bce_loss)
+    focal_loss = ((1 - pt) ** gamma) * bce_loss
+    if pos_weight is not None:
+        weight = torch.where(targets > 0.5, pos_weight.reshape(-1, 1), torch.ones_like(targets))
+        focal_loss = focal_loss * weight
+    return focal_loss.mean()
+
+
 class UncertaintyWeightedLoss(nn.Module):
     def __init__(self, n_tasks):
         super().__init__()
@@ -69,6 +80,9 @@ def main():
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--num_workers', type=int, default=4)
+    parser.add_argument('--oversample_ratio', type=float, default=5.0)
+    parser.add_argument('--focal_gamma', type=float, default=2.0)
+    parser.add_argument('--use_cached_dataset', action='store_true')
     args = parser.parse_args()
 
     if args.debug_mode:
@@ -86,9 +100,13 @@ def main():
         train_df, val_df, test_df, landmark_to_idx = load_and_split_data(
             args.table_path, args.seed, debug_n_persons
         )
-        train_dataset = LandmarkDataset(train_df, landmark_to_idx)
-        val_dataset = LandmarkDataset(val_df, landmark_to_idx)
-        test_dataset = LandmarkDataset(test_df, landmark_to_idx)
+        
+        dataset_cls = LandmarkDatasetCached if args.use_cached_dataset else LandmarkDataset
+        logger.log(f"Using dataset: {dataset_cls.__name__}")
+        
+        train_dataset = dataset_cls(train_df, landmark_to_idx)
+        val_dataset = dataset_cls(val_df, landmark_to_idx)
+        test_dataset = dataset_cls(test_df, landmark_to_idx)
 
         train_labels = train_df['y_2year'].values.astype(int)
         n_pos = train_labels.sum()
@@ -103,7 +121,7 @@ def main():
         )
 
         if n_pos > 0:
-            sample_weights = np.where(train_labels == 1, 5.0 * n_neg / n_pos, 1.0)
+            sample_weights = np.where(train_labels == 1, args.oversample_ratio * n_neg / n_pos, 1.0)
             sampler = WeightedRandomSampler(
                 torch.DoubleTensor(sample_weights), len(train_labels), replacement=True,
             )
@@ -189,7 +207,7 @@ def main():
         ], weight_decay=1e-4)
 
         pos_weight = torch.tensor([pos_weight_val], device=device)
-        best_val_auprc = 0.0
+        best_val_auprc = -1.0
         patience = 30
         patience_counter = 0
         checkpoint_path = f'checkpoints/landmark/phase2_best_seed{args.seed}.pt'
@@ -214,9 +232,10 @@ def main():
                 outputs = model(x, alpha, history_length=hl)
 
                 loss_gen = outputs['diff_loss'] + 0.5 * outputs['disc_loss']
-                loss_traj = model.compute_trajectory_loss(outputs['trajectory'], traj_target, traj_mask)
-                loss_cls = F.binary_cross_entropy_with_logits(
-                    outputs['risk_2year_logit'], y_2year, pos_weight=pos_weight
+                loss_traj = model.compute_trajectory_loss(outputs['trajectory_logits'], traj_target, traj_mask)
+                loss_cls = focal_loss_with_logits(
+                    outputs['risk_2year_logit'], y_2year, 
+                    gamma=args.focal_gamma, pos_weight=pos_weight
                 )
 
                 loss = uw_loss([loss_gen, loss_traj, loss_cls])
@@ -282,17 +301,45 @@ def main():
         else:
             ckpt = {'epoch': args.finetune_epochs, 'best_val_auprc': best_val_auprc}
 
+        # Compute optimal threshold on validation set
+        if len(np.unique(best_val_y_true)) >= 2:
+            optimal_threshold, _ = find_optimal_threshold(
+                best_val_y_true, best_val_y_pred, metric='f1'
+            )
+        else:
+            optimal_threshold = 0.5
+        logger.log(f"Optimal threshold (val F1): {optimal_threshold:.4f}")
+
         test_y_true, test_y_pred = evaluate_model(model, test_loader, device)
         test_m = compute_ranking_metrics(test_y_true, test_y_pred)
         logger.log(f"Test | AUPRC {test_m['auprc']:.4f} | AUROC {test_m['auroc']:.4f}")
+
+        # Apply fixed threshold to test set
+        test_y_bin = (test_y_pred >= optimal_threshold).astype(int)
+        test_thr_m = compute_threshold_metrics(test_y_true, test_y_bin)
+        logger.log(
+            f"Test (thr={optimal_threshold:.4f}) | F1 {test_thr_m['f1']:.4f} | "
+            f"Prec {test_thr_m['precision']:.4f} | Rec {test_thr_m['recall']:.4f} | "
+            f"Spec {test_thr_m['specificity']:.4f} | BalAcc {test_thr_m['balanced_accuracy']:.4f} | "
+            f"MCC {test_thr_m['mcc']:.4f}"
+        )
 
         pred_path = f'predictions/landmark/phase2_seed{args.seed}.npz'
         np.savez(
             pred_path,
             val_y_true=best_val_y_true, val_y_pred=best_val_y_pred,
             test_y_true=test_y_true, test_y_pred=test_y_pred,
+            optimal_threshold=optimal_threshold,
+            test_f1=test_thr_m['f1'],
+            test_precision=test_thr_m['precision'],
+            test_recall=test_thr_m['recall'],
+            test_specificity=test_thr_m['specificity'],
+            test_balanced_accuracy=test_thr_m['balanced_accuracy'],
+            test_mcc=test_thr_m['mcc'],
             seed=args.seed, best_epoch=ckpt['epoch'],
             best_val_auprc=float(ckpt['best_val_auprc']),
+            oversample_ratio=args.oversample_ratio,
+            focal_gamma=args.focal_gamma,
         )
         logger.log(f"Saved to {pred_path}")
         logger.log('Phase 2 complete')

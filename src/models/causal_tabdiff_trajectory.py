@@ -56,6 +56,7 @@ class CausalTabDiffTrajectory(nn.Module):
             'diff_loss': diff_loss,
             'disc_loss': disc_loss,
             'trajectory': trajectory_probs,
+            'trajectory_logits': trajectory_logits,
             'risk_2year': risk_2year,
             'risk_2year_logit': risk_2year_direct,
         }
@@ -66,9 +67,9 @@ class CausalTabDiffTrajectory(nn.Module):
         risk_2year = 1.0 - survival_2year[:, -1:]
         return risk_2year
     
-    def compute_trajectory_loss(self, pred_trajectory, target_trajectory, valid_mask):
+    def compute_trajectory_loss(self, pred_trajectory_logits, target_trajectory, valid_mask):
         valid_mask = valid_mask.float()
-        loss_per_element = F.binary_cross_entropy(pred_trajectory, target_trajectory, reduction='none')
+        loss_per_element = F.binary_cross_entropy_with_logits(pred_trajectory_logits, target_trajectory, reduction='none')
         masked_loss = loss_per_element * valid_mask
         total_valid = valid_mask.sum()
         if total_valid > 0:
