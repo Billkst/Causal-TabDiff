@@ -99,6 +99,7 @@ def train_itransformer(model, train_loader, val_loader, epochs, device, train_df
 
     best_val_auprc = -float('inf')
     best_model_state = None
+    best_epoch = 0
     train_batches = len(train_loader)
     total_start = time.time()
 
@@ -150,6 +151,7 @@ def train_itransformer(model, train_loader, val_loader, epochs, device, train_df
 
         if val_auprc > best_val_auprc:
             best_val_auprc = val_auprc
+            best_epoch = epoch + 1
             best_model_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
             logger.log(f"[train] ★ new_best | epoch {epoch+1}/{epochs} | best_val_auprc={best_val_auprc:.6f}")
 
@@ -165,8 +167,8 @@ def train_itransformer(model, train_loader, val_loader, epochs, device, train_df
         )
 
     model.load_state_dict(best_model_state)
-    logger.log(f"[train] complete | total_time={time.time() - total_start:.1f}s | best_val_auprc={best_val_auprc:.6f}")
-    return model, best_val_auprc
+    logger.log(f"[train] complete | total_time={time.time() - total_start:.1f}s | best_val_auprc={best_val_auprc:.6f} | best_epoch={best_epoch}")
+    return model, best_val_auprc, best_epoch
 
 
 # ── Predict ──────────────────────────────────────────────────────────────────
@@ -264,7 +266,7 @@ def main():
         logger.log(f"[model] iTransformerWrapper(seq_len=3, enc_in=15, task=classification, num_class=2)")
 
         # ── train ──
-        model, best_val_auprc = train_itransformer(
+        model, best_val_auprc, best_epoch = train_itransformer(
             model, train_loader, val_loader, args.epochs, device, train_df, logger, args.heartbeat_batches, args.seed
         )
 
@@ -300,6 +302,8 @@ def main():
             test_balanced_accuracy=metrics['balanced_accuracy'],
             test_mcc=metrics['mcc'],
             seed=args.seed,
+            best_epoch=best_epoch,
+            best_val_auprc=best_val_auprc,
         )
         logger.log(f"[save] npz saved: {npz_path}")
 
