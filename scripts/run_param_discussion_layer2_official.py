@@ -26,9 +26,14 @@ from src.evaluation.metrics import compute_ranking_metrics, find_optimal_thresho
 from src.evaluation.efficiency import EfficiencyTracker
 
 DEFAULT_TABLE_PATH = 'data/landmark_tables/unified_person_landmark_table.pkl'
-OUTPUT_ROOT = 'outputs/param_discussion_layer2'
-LOG_ROOT = 'logs/param_discussion_layer2'
-CHECKPOINT_ROOT = 'checkpoints/param_discussion_layer2'
+DEFAULT_OUTPUT_ROOT = 'outputs/param_discussion_layer2'
+DEFAULT_LOG_ROOT = 'logs/param_discussion_layer2'
+DEFAULT_CHECKPOINT_ROOT = 'checkpoints/param_discussion_layer2'
+
+# Module-level mutable roots (overridden by CLI args in main)
+OUTPUT_ROOT = DEFAULT_OUTPUT_ROOT
+LOG_ROOT = DEFAULT_LOG_ROOT
+CHECKPOINT_ROOT = DEFAULT_CHECKPOINT_ROOT
 
 PARAM_MATRIX = {
     'focal_gamma': [0.0, 1.0, 2.0, 3.0, 5.0],
@@ -734,6 +739,8 @@ def summarize_results(results, seeds):
 
 
 def main():
+    global OUTPUT_ROOT, LOG_ROOT, CHECKPOINT_ROOT
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--table_path', type=str, default=DEFAULT_TABLE_PATH)
     parser.add_argument('--pretrain_epochs', type=int, default=50)
@@ -746,7 +753,14 @@ def main():
     parser.add_argument('--values', type=str, default=None)
     parser.add_argument('--skip_default', action='store_true')
     parser.add_argument('--use_cached_dataset', action='store_true', default=True)
+    parser.add_argument('--output_root', type=str, default=DEFAULT_OUTPUT_ROOT)
+    parser.add_argument('--log_root', type=str, default=DEFAULT_LOG_ROOT)
+    parser.add_argument('--checkpoint_root', type=str, default=DEFAULT_CHECKPOINT_ROOT)
     args = parser.parse_args()
+
+    OUTPUT_ROOT = args.output_root
+    LOG_ROOT = args.log_root
+    CHECKPOINT_ROOT = args.checkpoint_root
 
     seeds = parse_seeds(args)
     selected_params = get_selected_params(args)
