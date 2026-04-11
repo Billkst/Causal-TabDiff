@@ -70,6 +70,18 @@ class UncertaintyWeightedLoss(nn.Module):
         return total
 
 
+def _json_safe(obj):
+    if isinstance(obj, dict):
+        return {k: _json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_json_safe(v) for v in obj]
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    if isinstance(obj, np.generic):
+        return obj.item()
+    return obj
+
+
 # ---------- Helpers ----------
 
 def build_alpha_target(batch, device):
@@ -313,7 +325,7 @@ def oom_search(args, data):
     out_path = os.path.join(args.output_dir, f"oom_search_nw{args.num_workers}.json")
     os.makedirs(args.output_dir, exist_ok=True)
     with open(out_path, 'w') as f:
-        json.dump(results, f, indent=2)
+        json.dump(_json_safe(results), f, indent=2)
     print(f"\nResults saved to {out_path}", flush=True)
 
     return results
@@ -441,7 +453,7 @@ def throughput_sweep(args, data):
     out_path = os.path.join(args.output_dir, "throughput_sweep.json")
     os.makedirs(args.output_dir, exist_ok=True)
     with open(out_path, 'w') as f:
-        json.dump(results, f, indent=2)
+        json.dump(_json_safe(results), f, indent=2)
     print(f"\nResults saved to {out_path}", flush=True)
 
     return results
@@ -564,7 +576,7 @@ def stability_test(args, data):
     out_path = os.path.join(args.output_dir, f"stability_{tag}.json")
     os.makedirs(args.output_dir, exist_ok=True)
     with open(out_path, 'w') as f:
-        json.dump(result, f, indent=2)
+        json.dump(_json_safe(result), f, indent=2)
     print(f"\nSaved to {out_path}", flush=True)
 
     return result
