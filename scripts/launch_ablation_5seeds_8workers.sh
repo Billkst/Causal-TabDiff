@@ -22,10 +22,11 @@ echo "Run stamp: $RUN_STAMP"
 
 for worker_id in $(seq 0 "$((WORKER_COUNT - 1))"); do
   worker_log="${LOG_ROOT}/worker_${worker_id}_${RUN_STAMP}.launcher.log"
-  nohup bash scripts/run_ablation_5seeds_worker.sh "$worker_id" > "$worker_log" 2>&1 &
+  CUDA_VISIBLE_DEVICES="$worker_id" ABLATION_GPU_ID="$worker_id" \
+    nohup bash scripts/run_ablation_5seeds_worker.sh "$worker_id" > "$worker_log" 2>&1 &
   worker_pid="$!"
   echo "$worker_pid" > "${STATUS_ROOT}/worker_${worker_id}_${RUN_STAMP}.pid"
-  echo "Started worker ${worker_id}: pid=${worker_pid}, log=${worker_log}"
+  echo "Started worker ${worker_id}: gpu=${worker_id}, pid=${worker_pid}, log=${worker_log}"
 done
 
 {
@@ -37,6 +38,7 @@ done
   echo "variants=wo_Discriminator,wo_Dual_Attention,wo_Oversampling"
   echo "seeds=42,52,62,72,82"
   echo "full_model_policy=reuse_existing_official_5seed_do_not_rerun"
+  echo "gpu_mapping=worker_id_equals_cuda_visible_devices"
 } > "${STATUS_ROOT}/launch_${RUN_STAMP}.manifest"
 
 echo "Launch manifest: ${STATUS_ROOT}/launch_${RUN_STAMP}.manifest"

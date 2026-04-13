@@ -35,6 +35,8 @@ echo "Assigned runs: ${RUNS[*]}"
 echo "Output root: ${OUTPUT_ROOT}"
 echo "Training log dir: ${TRAINING_LOG_DIR}"
 echo "Dataloader workers per run: ${DATALOADER_WORKERS}"
+echo "Assigned physical GPU: ${ABLATION_GPU_ID:-unset}"
+echo "CUDA_VISIBLE_DEVICES: ${CUDA_VISIBLE_DEVICES:-unset}"
 
 for run_spec in "${RUNS[@]}"; do
   read -r variant seed <<< "$run_spec"
@@ -80,6 +82,7 @@ for run_spec in "${RUNS[@]}"; do
 
   start_ts="$(date +%s)"
   echo "RUN ${variant} seed ${seed} at $(date -Iseconds)"
+  echo "GPU binding: worker=${WORKER_ID}, physical_gpu=${ABLATION_GPU_ID:-unset}, CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-unset}"
   echo "CMD: ${cmd[*]}"
 
   "${cmd[@]}"
