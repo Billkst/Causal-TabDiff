@@ -70,6 +70,11 @@ def parse_args() -> argparse.Namespace:
         default=PROJECT_ROOT / "outputs/efficiency",
     )
     parser.add_argument("--check-only", action="store_true")
+    parser.add_argument(
+        "--allow-mixed-full-model-source",
+        action="store_true",
+        help="Allow legacy Full_Model metrics to be combined with throughput ablation variants.",
+    )
     return parser.parse_args()
 
 
@@ -117,6 +122,29 @@ def eff_value(eff: dict[str, Any], *keys: str) -> Any:
         if key in eff and eff[key] is not None:
             return eff[key]
     return None
+
+
+def command_uses_throughput_protocol(command: str) -> bool:
+    return "--batch_size 94739" in command and "--num_workers 0" in command and "--use_cached_dataset" in command
+
+
+def supplement_uses_throughput_protocol(output_root: Path) -> bool:
+    for variant in ABLATION_VARIANTS:
+        for seed in SEEDS:
+            eff_path = output_root / variant / f"{variant}_seed{seed}_efficiency.json"
+            if not eff_path.exists():
+                continue
+            try:
+                command = str(load_json(eff_path).get("command", ""))
+            except Exception:
+                continue
+            if command_uses_throughput_protocol(command):
+                return True
+    return False
+
+
+def default_full_model_source(args: argparse.Namespace) -> bool:
+    return args.full_detail_csv.resolve() == (PROJECT_ROOT / "outputs/submission_v3/layer2_ours_5seed_detail.csv").resolve()
 
 
 def collect_full_model(args: argparse.Namespace, manifest: dict[str, Any]) -> list[dict[str, Any]]:
@@ -390,6 +418,20 @@ def main() -> int:
 
     full_rows = collect_full_model(args, manifest)
     ablation_rows = collect_ablation_variants(args, manifest)
+    if (
+        not args.allow_mixed_full_model_source
+        and default_full_model_source(args)
+        and supplement_uses_throughput_protocol(args.output_root)
+    ):
+        manifest["invalid"].append(
+            {
+                "reason": "Full_Model source/protocol mismatch",
+                "full_model_source": rel(args.full_detail_csv),
+                "supplement_protocol": "batch_size=94739,num_workers=0,use_cached_dataset=true",
+                "message": "Refusing to generate final ablation tables from legacy Full_Model source and throughput ablation variants.",
+            }
+        )
+
     manifest["complete_new_runs"] = len(ablation_rows)
     manifest["completed_keys"] = [f"{row['variant']}_seed{row['seed']}" for row in ablation_rows]
     manifest["is_complete"] = bool(len(full_rows) == 5 and len(ablation_rows) == 15 and not manifest["invalid"])
