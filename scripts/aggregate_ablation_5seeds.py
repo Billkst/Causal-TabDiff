@@ -69,7 +69,18 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=PROJECT_ROOT / "outputs/efficiency",
     )
+    parser.add_argument(
+        "--full-model-output-root",
+        type=Path,
+        default=None,
+        help="Directory containing Full_Model/Full_Model_seed{seed}.npz and efficiency JSON files.",
+    )
     parser.add_argument("--check-only", action="store_true")
+    parser.add_argument(
+        "--allow-mixed-full-model-source",
+        action="store_true",
+        help="Allow legacy Full_Model metrics to be combined with throughput ablation variants.",
+    )
     return parser.parse_args()
 
 
@@ -117,6 +128,29 @@ def eff_value(eff: dict[str, Any], *keys: str) -> Any:
         if key in eff and eff[key] is not None:
             return eff[key]
     return None
+
+
+def command_uses_throughput_protocol(command: str) -> bool:
+    return "--batch_size 94739" in command and "--num_workers 0" in command and "--use_cached_dataset" in command
+
+
+def supplement_uses_throughput_protocol(output_root: Path) -> bool:
+    for variant in ABLATION_VARIANTS:
+        for seed in SEEDS:
+            eff_path = output_root / variant / f"{variant}_seed{seed}_efficiency.json"
+            if not eff_path.exists():
+                continue
+            try:
+                command = str(load_json(eff_path).get("command", ""))
+            except Exception:
+                continue
+            if command_uses_throughput_protocol(command):
+                return True
+    return False
+
+
+def default_full_model_source(args: argparse.Namespace) -> bool:
+    return args.full_detail_csv.resolve() == (PROJECT_ROOT / "outputs/submission_v3/layer2_ours_5seed_detail.csv").resolve()
 
 
 def collect_full_model(args: argparse.Namespace, manifest: dict[str, Any]) -> list[dict[str, Any]]:
@@ -169,6 +203,69 @@ def collect_full_model(args: argparse.Namespace, manifest: dict[str, Any]) -> li
     for seed in SEEDS:
         if seed not in seen:
             manifest["missing"].append(f"Full_Model official detail seed {seed}")
+    return rows
+
+
+def collect_full_model_ref_runs(args: argparse.Namespace, manifest: dict[str, Any]) -> list[dict[str, Any]]:
+    if args.full_model_output_root is None:
+        return collect_full_model(args, manifest)
+
+    rows = []
+    variant = "Full_Model"
+    for seed in SEEDS:
+        npz_path = args.full_model_output_root / variant / f"{variant}_seed{seed}.npz"
+        eff_path = args.full_model_output_root / variant / f"{variant}_seed{seed}_efficiency.json"
+        if not npz_path.exists() or not eff_path.exists():
+            if not npz_path.exists():
+                manifest["missing"].append(rel(npz_path))
+            if not eff_path.exists():
+                manifest["missing"].append(rel(eff_path))
+            continue
+        try:
+            data = np.load(npz_path)
+            eff = load_json(eff_path)
+            test_y_true = np.asarray(data["test_y_true"]).ravel()
+            test_y_pred = np.asarray(data["test_y_pred"]).ravel()
+            val_y_true = np.asarray(data["val_y_true"]).ravel()
+            val_y_pred = np.asarray(data["val_y_pred"]).ravel()
+        except Exception as exc:
+            manifest["invalid"].append({"path": rel(npz_path), "error": repr(exc)})
+            continue
+
+        threshold = float(npz_scalar(data, "optimal_threshold") or 0.5)
+        test_rank = compute_ranking_metrics(test_y_true, test_y_pred)
+        val_rank = compute_ranking_metrics(val_y_true, val_y_pred)
+        test_thr = compute_threshold_metrics(test_y_true, (test_y_pred >= threshold).astype(int))
+        rows.append(
+            {
+                "variant": variant,
+                "seed": seed,
+                "source": "throughput_full_model_ref",
+                "source_path": rel(npz_path),
+                "npz_path": rel(npz_path),
+                "efficiency_path": rel(eff_path),
+                "best_epoch": finite_float(npz_scalar(data, "best_epoch")),
+                "best_val_auprc": finite_float(npz_scalar(data, "best_val_auprc")),
+                "val_auprc": finite_float(val_rank.get("auprc")),
+                "val_auroc": finite_float(val_rank.get("auroc")),
+                "test_auprc": finite_float(test_rank.get("auprc")),
+                "test_auroc": finite_float(test_rank.get("auroc")),
+                "optimal_threshold": threshold,
+                "test_f1": finite_float(test_thr.get("f1")),
+                "test_precision": finite_float(test_thr.get("precision")),
+                "test_recall": finite_float(test_thr.get("recall")),
+                "test_specificity": finite_float(test_thr.get("specificity")),
+                "test_balanced_accuracy": finite_float(test_thr.get("balanced_accuracy")),
+                "test_mcc": finite_float(test_thr.get("mcc")),
+                "total_params": finite_float(eff_value(eff, "total_params", "num_parameters_total")),
+                "train_wall_clock_sec": finite_float(
+                    eff_value(eff, "train_wall_clock_sec", "total_training_wall_clock_sec")
+                ),
+                "peak_gpu_memory_mb": finite_float(eff_value(eff, "peak_gpu_memory_mb", "gpu_memory_mb_peak")),
+                "inference_latency_ms": finite_float(eff_value(eff, "inference_latency_ms_per_sample")),
+                "md5": md5(npz_path),
+            }
+        )
     return rows
 
 
@@ -338,7 +435,10 @@ def write_manifest(output_root: Path, manifest: dict[str, Any]) -> None:
         "name": "official_4variant_ablation_5seed_supplement",
         "created_at_utc": dt.datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
         "output_root": rel(output_root),
-        "full_model_policy": "reuse outputs/submission_v3/layer2_ours_5seed_detail.csv; do not rerun Full_Model",
+        "full_model_policy": manifest.get(
+            "full_model_policy",
+            "reuse outputs/submission_v3/layer2_ours_5seed_detail.csv; do not rerun Full_Model",
+        ),
         "supplement_variants": ABLATION_VARIANTS,
         "seeds": SEEDS,
         "complete_new_runs": manifest["complete_new_runs"],
@@ -355,7 +455,7 @@ def write_manifest(output_root: Path, manifest: dict[str, Any]) -> None:
         "# Ablation 5-Seed Manifest",
         "",
         f"- Complete supplemental runs: {manifest['complete_new_runs']}/15",
-        "- Full_Model policy: reuse existing official 5-seed result; do not rerun",
+        f"- Full_Model policy: {manifest.get('full_model_policy', 'reuse existing official 5-seed result; do not rerun')}",
         f"- Complete final outputs generated: {manifest['is_complete']}",
         "",
         "## Expected Supplemental Runs",
@@ -388,8 +488,31 @@ def main() -> int:
         "files": {},
     }
 
-    full_rows = collect_full_model(args, manifest)
+    if args.full_model_output_root is not None:
+        manifest["full_model_policy"] = (
+            f"reuse throughput Full_Model reference from {rel(args.full_model_output_root)}; "
+            "do not rerun existing 15 ablated variants"
+        )
+    else:
+        manifest["full_model_policy"] = "reuse existing official 5-seed result; do not rerun Full_Model"
+
+    full_rows = collect_full_model_ref_runs(args, manifest)
     ablation_rows = collect_ablation_variants(args, manifest)
+    if (
+        args.full_model_output_root is None
+        and not args.allow_mixed_full_model_source
+        and default_full_model_source(args)
+        and supplement_uses_throughput_protocol(args.output_root)
+    ):
+        manifest["invalid"].append(
+            {
+                "reason": "Full_Model source/protocol mismatch",
+                "full_model_source": rel(args.full_detail_csv),
+                "supplement_protocol": "batch_size=94739,num_workers=0,use_cached_dataset=true",
+                "message": "Refusing to generate final ablation tables from legacy Full_Model source and throughput ablation variants.",
+            }
+        )
+
     manifest["complete_new_runs"] = len(ablation_rows)
     manifest["completed_keys"] = [f"{row['variant']}_seed{row['seed']}" for row in ablation_rows]
     manifest["is_complete"] = bool(len(full_rows) == 5 and len(ablation_rows) == 15 and not manifest["invalid"])
