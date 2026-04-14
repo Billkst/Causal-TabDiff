@@ -9,7 +9,8 @@ OUTPUT_ROOT="${OUTPUT_ROOT:-outputs/submission_v3_5seeds/ablation_layer2}"
 TRAINING_LOG_DIR="${TRAINING_LOG_DIR:-logs/training_ablation_5seeds}"
 WORKER_LOG_DIR="${WORKER_LOG_DIR:-logs/ablation_5seeds}"
 STATUS_ROOT="${STATUS_ROOT:-${OUTPUT_ROOT}/status}"
-DATALOADER_WORKERS="${DATALOADER_WORKERS:-4}"
+DATALOADER_WORKERS="${DATALOADER_WORKERS:-0}"
+BATCH_SIZE="${BATCH_SIZE:-94739}"
 PYTHON_BIN="${PYTHON_BIN:-python}"
 TRAIN_SCRIPT="${TRAIN_SCRIPT:-scripts/run_ablation_layer2_official.py}"
 
@@ -34,6 +35,7 @@ echo "Worker ${WORKER_ID} started at $(date -Iseconds)"
 echo "Assigned runs: ${RUNS[*]}"
 echo "Output root: ${OUTPUT_ROOT}"
 echo "Training log dir: ${TRAINING_LOG_DIR}"
+echo "Batch size: ${BATCH_SIZE}"
 echo "Dataloader workers per run: ${DATALOADER_WORKERS}"
 echo "Assigned physical GPU: ${ABLATION_GPU_ID:-unset}"
 echo "CUDA_VISIBLE_DEVICES: ${CUDA_VISIBLE_DEVICES:-unset}"
@@ -72,6 +74,7 @@ for run_spec in "${RUNS[@]}"; do
     --seed "$seed"
     --output_root "$OUTPUT_ROOT"
     --log_dir "$TRAINING_LOG_DIR"
+    --batch_size "$BATCH_SIZE"
     --num_workers "$DATALOADER_WORKERS"
     --use_cached_dataset
   )
@@ -83,6 +86,7 @@ for run_spec in "${RUNS[@]}"; do
   start_ts="$(date +%s)"
   echo "RUN ${variant} seed ${seed} at $(date -Iseconds)"
   echo "GPU binding: worker=${WORKER_ID}, physical_gpu=${ABLATION_GPU_ID:-unset}, CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-unset}"
+  echo "Throughput protocol: batch_size=${BATCH_SIZE}, num_workers=${DATALOADER_WORKERS}, use_cached_dataset=true"
   echo "CMD: ${cmd[*]}"
 
   "${cmd[@]}"
