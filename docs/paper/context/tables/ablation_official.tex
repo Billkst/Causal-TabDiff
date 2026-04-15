@@ -1,10 +1,10 @@
-\begin{tabular}{lccc}
+\begin{tabular}{lccccc}
 \toprule
-\textbf{Variant} & \textbf{AUPRC} & \textbf{AUROC} & \textbf{$\Delta$ AUPRC} \\
+\textbf{Variant} & \textbf{AUPRC} & \textbf{AUROC} & \textbf{F1} & \textbf{MCC} & \textbf{$\Delta$ AUPRC} \\
 \midrule
-\textbf{Full Model} & \textbf{0.0327} & \textbf{0.6839} & - \\
-wo Dual-Attention & 0.0290 & 0.6690 & -0.0036 \\
-wo Oversampling & 0.0348 & 0.6922 & +0.0022 \\
-wo Discriminator & 0.0343 & 0.6733 & +0.0017 \\
+\textbf{Full Model} & \textbf{0.0208 $\pm$ 0.0058} & \textbf{0.6175 $\pm$ 0.0462} & \textbf{0.0407 $\pm$ 0.0213} & \textbf{0.0328 $\pm$ 0.0205} & -- \\
+wo Discriminator & 0.0205 $\pm$ 0.0055 & 0.6166 $\pm$ 0.0457 & 0.0421 $\pm$ 0.0216 & 0.0348 $\pm$ 0.0184 & -0.0003 \\
+wo Dual-Attention & 0.0259 $\pm$ 0.0043 & 0.6527 $\pm$ 0.0182 & 0.0566 $\pm$ 0.0181 & 0.0480 $\pm$ 0.0146 & +0.0051 \\
+wo Oversampling & 0.0217 $\pm$ 0.0072 & 0.5937 $\pm$ 0.0701 & 0.0552 $\pm$ 0.0202 & 0.0434 $\pm$ 0.0247 & +0.0009 \\
 \bottomrule
 \end{tabular}
