@@ -87,8 +87,10 @@ L_{\text{total}} = \sum_{i \in \{\text{gen}, \text{traj}, \text{cls}\}} \frac{1}
 \end{equation}
 where $L_{\text{gen}}$, $L_{\text{traj}}$, and $L_{\text{cls}}$ are the generative, masked trajectory, and classification losses. The classification term uses focal loss under rare events:
 \begin{equation}
-L_{\text{cls}}=-w_y(1-p_y)^{\gamma}\log p_y,\quad
-p_y=y\hat{p}_{\theta}+(1-y)(1-\hat{p}_{\theta}).
+\begin{aligned}
+L_{\text{cls}}&=-w_y(1-p_y)^{\gamma}\log p_y,\\
+p_y&=y\hat{p}_{\theta}+(1-y)(1-\hat{p}_{\theta}).
+\end{aligned}
 \label{eq:focal_loss}
 \end{equation}
 The prespecified configuration uses 100 diffusion steps, focal gamma $=2.0$, oversample ratio $=5.0$, and uncertainty-weighted optimization. Fig. \ref{fig:overall_framework} summarizes the pipeline.
@@ -221,6 +223,12 @@ The enrichment analysis evaluates whether the model concentrates events into the
 \input{tables/enrichment.tex}
 \end{table}
 
+\begin{figure}[!htbp]
+\centerline{\includegraphics[width=0.88\columnwidth]{figures/risk_enrichment.png}}
+\caption{Risk stratification across Top 1\%, 5\%, and 10\% predicted-risk cohorts. Error bars show standard deviations; the dashed line marks prevalence.}
+\label{fig:risk_enrichment}
+\end{figure}
+
 \subsection{Layer 2: Trajectory Readout Comparison}
 \label{subsec:layer2_results}
 
@@ -272,6 +280,12 @@ We report the canonical 5-seed Layer 2 ablation using seeds $\{42,52,62,72,82\}$
 \label{subsec:param_sensitivity}
 
 An auxiliary 5-seed sweep with seeds $\{42,0,1,2,3\}$, analyzed separately from the canonical seed set, indicates greater sensitivity to focal-gamma and oversampling than to discriminator weight: $\gamma=0.0$ gives the highest mean AUPRC (\textbf{0.0299 $\pm$ 0.0047}), while discriminator-weight means remain near 0.025.
+
+\begin{figure*}[!htbp]
+\centerline{\includegraphics[width=0.86\textwidth]{figures/parameter_sensitivity.png}}
+\caption{Independent 5-seed parameter sensitivity trends for focal gamma, oversample ratio, and discriminator weight. Stars indicate the best tested mean AUPRC within each sweep, and error bars denote standard deviations.}
+\label{fig:param_sensitivity}
+\end{figure*}
 
 \section{Limitations}
 \label{sec:limitations}
