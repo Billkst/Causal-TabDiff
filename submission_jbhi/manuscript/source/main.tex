@@ -221,25 +221,21 @@ The enrichment analysis evaluates whether the model concentrates events into the
 \input{tables/enrichment.tex}
 \end{table}
 
-\begin{figure}[htbp]
-\centerline{\includegraphics[width=0.84\columnwidth]{figures/risk_enrichment.png}}
-\caption{Risk stratification across Top 1\%, 5\%, and 10\% predicted-risk cohorts. Error bars show standard deviations; the dashed line marks prevalence.}
-\label{fig:risk_enrichment}
-\end{figure}
-
 \subsection{Layer 2: Trajectory Readout Comparison}
 \label{subsec:layer2_results}
 
 The Layer 2 comparison evaluates whether the learned trajectory representation supports downstream risk readout. Causal-TabDiff achieves \textbf{0.0273 $\pm$ 0.0022} readout AUPRC, \textbf{0.6620 $\pm$ 0.0221} AUROC, \textbf{0.0713 $\pm$ 0.0088} F1, and \textbf{0.0643 $\pm$ 0.0061} MCC (Table \ref{tab:layer2_main}), exceeding retained readout baselines. It also uses fewer parameters than iTransformer, TimeXer, and SSSD and has the lowest retained inference latency (Table \ref{tab:efficiency}).
 
-\begin{table*}[htbp]
+\begin{table}[!htbp]
 \caption{Layer 2 trajectory-to-risk readout performance on the held-out test set. Results are mean $\pm$ std over 5 seeds.}
 \label{tab:layer2_main}
 \centering
-\input{tables/layer2_main.tex}
-\end{table*}
+\scriptsize
+\setlength{\tabcolsep}{2pt}
+\resizebox{\columnwidth}{!}{\input{tables/layer2_main.tex}}
+\end{table}
 
-\begin{table}[htbp]
+\begin{table}[!htbp]
 \caption{Layer 2 efficiency under the 5-seed protocol. Lower values are better for all metrics.}
 \label{tab:efficiency}
 \centering
@@ -263,7 +259,7 @@ SurvTraj & \textbf{26,740} & \textbf{18.51 $\pm$ 0.00} & 1.235 $\pm$ 0.064 \\
 
 We report the canonical 5-seed Layer 2 ablation using seeds $\{42,52,62,72,82\}$. Removing the LSTM discriminator reduces mean AUPRC from 0.0273 to 0.0267 ($\Delta=-0.0006$, $-2.24\%$) and lowers F1/MCC. Removing Orthogonal Dual-Attention gives a similar AUPRC reduction ($\Delta=-0.0006$, $-2.09\%$). Removing oversampling increases mean AUPRC/AUROC but not validation-thresholded F1 or MCC, indicating metric-dependent effects.
 
-\begin{table}[htbp]
+\begin{table}[!htbp]
 \caption{Canonical Layer 2 ablation over 5 seeds. $\Delta$ AUPRC is relative to the Full Model mean.}
 \label{tab:ablation}
 \centering
@@ -275,20 +271,7 @@ We report the canonical 5-seed Layer 2 ablation using seeds $\{42,52,62,72,82\}$
 \subsection{Independent Parameter Sensitivity Analysis}
 \label{subsec:param_sensitivity}
 
-We further report an independent 5-seed sweep with seeds $\{42,0,1,2,3\}$; this auxiliary protocol does not replace the canonical main-table seed set. The sweep suggests stronger sensitivity to focal-gamma and oversampling than to the tested discriminator-weight range: $\gamma=0.0$ gives the highest mean AUPRC (\textbf{0.0299 $\pm$ 0.0047}), while discriminator-weight means remain near 0.025. Table \ref{tab:param_sensitivity} and Fig. \ref{fig:param_sensitivity} summarize the trends.
-
-\begin{table*}[htbp]
-\caption{Independent 5-seed parameter-discussion summary. The sweep uses seeds $\{42,0,1,2,3\}$ and is analyzed separately from the main-table protocol.}
-\label{tab:param_sensitivity}
-\centering
-\input{tables/parameter_sensitivity.tex}
-\end{table*}
-
-\begin{figure*}[htbp]
-\centerline{\includegraphics[width=0.84\textwidth]{figures/parameter_sensitivity.png}}
-\caption{Independent 5-seed parameter sensitivity trends. Stars indicate the best tested mean AUPRC; error bars denote standard deviations.}
-\label{fig:param_sensitivity}
-\end{figure*}
+An auxiliary 5-seed sweep with seeds $\{42,0,1,2,3\}$, analyzed separately from the canonical seed set, indicates greater sensitivity to focal-gamma and oversampling than to discriminator weight: $\gamma=0.0$ gives the highest mean AUPRC (\textbf{0.0299 $\pm$ 0.0047}), while discriminator-weight means remain near 0.025.
 
 \section{Limitations}
 \label{sec:limitations}
