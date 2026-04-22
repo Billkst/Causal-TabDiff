@@ -7,6 +7,7 @@
 \usepackage{array}
 \usepackage{booktabs}
 \usepackage{multirow}
+\usepackage{placeins}
 \usepackage{hyperref}
 \hypersetup{hidelinks}
 \setlength{\textfloatsep}{5pt plus 1pt minus 2pt}
@@ -196,6 +197,15 @@ The analysis uses public, de-identified NLST-derived data and did not involve ne
 
 Unless otherwise noted, all numbers use seeds 42, 52, 62, 72, and 82. Causal-TabDiff Layer 2 uses 50-epoch diffusion pretraining and up to 200-epoch finetuning with early stopping. Model selection uses validation AUPRC, and threshold-dependent test metrics use a validation-selected F1 threshold. AUPRC is primary under severe imbalance; AUROC, enrichment, F1, and MCC provide complementary ranking and operating-point views.
 
+Top-risk enrichment is computed only on the held-out test set. For a top fraction $q$, let $S_q$ denote the test samples with the largest predicted risks. The reported enrichment is
+\begin{equation}
+E_q =
+\frac{|S_q|^{-1}\sum_{i\in S_q} y_i}
+{N^{-1}\sum_{i=1}^{N} y_i},
+\label{eq:enrichment}
+\end{equation}
+and the capture rate is $|P|^{-1}\sum_{i\in S_q} y_i$, where $|P|=\sum_i y_i$ is the number of positive test samples. This definition makes the enrichment values directly comparable with the prevalence-induced random baseline.
+
 \subsection{Layer 1: 2-Year Risk Prediction Performance}
 \label{subsec:layer1_results}
 
@@ -280,12 +290,25 @@ We report the canonical 5-seed Layer 2 ablation using seeds $\{42,52,62,72,82\}$
 \label{subsec:param_sensitivity}
 
 An auxiliary 5-seed sweep with seeds $\{42,0,1,2,3\}$, analyzed separately from the canonical seed set, indicates greater sensitivity to focal-gamma and oversampling than to discriminator weight: $\gamma=0.0$ gives the highest mean AUPRC (\textbf{0.0299 $\pm$ 0.0047}), while discriminator-weight means remain near 0.025.
+This sweep is treated as an audit rather than post-hoc model selection: the main tables retain the prespecified configuration, and the auxiliary seeds are not mixed with the canonical seed set. The mismatch between AUPRC-favorable and F1/MCC-favorable settings further suggests that deployment thresholds should be calibrated to the intended screening workload rather than inferred from a single aggregate metric.
 
 \begin{figure*}[!htbp]
 \centerline{\includegraphics[width=0.86\textwidth]{figures/parameter_sensitivity.png}}
 \caption{Independent 5-seed parameter sensitivity trends for focal gamma, oversample ratio, and discriminator weight. Stars indicate the best tested mean AUPRC within each sweep, and error bars denote standard deviations.}
 \label{fig:param_sensitivity}
 \end{figure*}
+\FloatBarrier
+
+\section{Discussion}
+\label{sec:discussion}
+
+The results indicate that the main value of Causal-TabDiff is risk ranking rather than calibrated diagnosis. Under a 1.08\% event prevalence, absolute AUPRC values are necessarily small, so the clinically relevant question is whether the model concentrates future cancer events into reviewable subgroups. The Top 1\% and Top 5\% analyses answer this question more directly than accuracy: they show that the model enriches positives above prevalence while still using the same held-out participant split as the main tables. This supports a triage interpretation in which high-scoring screening histories are prioritized for closer review, not an autonomous treatment or follow-up decision.
+
+The ablation and parameter-sensitivity results also clarify the role of each architectural component. The discriminator and Orthogonal Dual-Attention blocks provide modest but consistent ranking gains in the canonical seed set, whereas oversampling changes the operating point and can improve AUPRC/AUROC while weakening validation-thresholded F1 or MCC. This pattern is plausible for rare-event prediction: ranking metrics and thresholded metrics reward different behavior, and no single operating point should be over-interpreted. Reporting both the canonical ablation and the independent sensitivity sweep is therefore useful for auditability, because it separates the main protocol from exploratory hyperparameter behavior.
+
+Several protocol choices were made to reduce optimistic bias. Splits are participant-level rather than sample-level, validation AUPRC selects checkpoints before test evaluation, and threshold-dependent metrics use thresholds selected only on the validation set. Variables that encode diagnosis timing, death, tumor location, or post-diagnosis staging are excluded before model training. The manuscript also keeps the term ``causal'' as a model name only and avoids intervention-effect claims. These safeguards are important for biomedical review because leakage and causal overstatement are common reasons for desk rejection or major revision.
+
+From an implementation perspective, the compact Layer 2 model is an advantage for deployment-oriented screening workflows. The model has 38,128 parameters, low peak GPU memory, and sub-0.1 ms sample latency in the retained profiling protocol. These numbers do not replace external validation, calibration, or clinical utility analysis, but they show that the proposed architecture is not merely more accurate by being larger. The appropriate next step is prospective or external-cohort evaluation with calibration, decision-curve analysis, and institution-specific workflow constraints.
 
 \section{Limitations}
 \label{sec:limitations}
@@ -298,7 +321,7 @@ This study uses a single screening-trial data source and requires external valid
 We presented Causal-TabDiff, a condition-guided diffusion framework for longitudinal lung cancer risk stratification under extreme class imbalance. In the 5-seed evaluation, it improves Layer 1 ranking over retained baselines, with a 30.8\% relative AUPRC gain over Logistic Regression and a 2.54$\times$ improvement over the random AUPRC baseline. Layer 2 remains compact with 38,128 parameters, 28.32 MB peak GPU memory, and sub-0.1 ms latency per sample. The evidence supports risk ranking and top-risk stratification; calibrated decision support requires further validation.
 
 \section*{Acknowledgment}
-The authors report no external funding for this work. The analysis used publicly available de-identified NLST-derived data obtained through Kaggle.
+The authors report no external funding for this work. The analysis used publicly available de-identified NLST-derived data obtained through Kaggle. OpenAI Codex assisted with language editing and \LaTeX{} layout. The authors reviewed all text and are responsible for the scientific content.
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}
