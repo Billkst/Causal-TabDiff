@@ -1,7 +1,4 @@
-logs/
 checkpoints/
-outputs/
-reports/
 predictions/
 runs/
 nohup.out
