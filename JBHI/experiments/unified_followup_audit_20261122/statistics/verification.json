@@ -1,0 +1,19 @@
+{
+  "notice": "冻结后稳健性审计，不改变已锁定主模型 R",
+  "tau_max_abs": 0.0,
+  "r_metrics_max_abs": 0.0,
+  "frozen_r_weights_replayed": 9,
+  "all_evaluation_checkpoints_replayed": 63,
+  "new_fits": 54,
+  "tau_cells": 54,
+  "tau_means": 6,
+  "paired_contrasts": 6,
+  "paired_draws": 2000,
+  "models_benchmarked": 11,
+  "subjects": 10594,
+  "landmarks": 31587,
+  "sealed_records_read": 0,
+  "patient_computation": "local only",
+  "distinct_local_cases": 3,
+  "archive_hashes_verified": true
+}

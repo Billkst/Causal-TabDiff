@@ -1,0 +1,20 @@
+{
+  "notice": "冻结后稳健性审计，不改变已锁定主模型 R",
+  "counts": {
+    "Case 1 / dev0 / seed42 / 阳性且前10%": 4,
+    "Case 2 / dev0 / seed42 / 阳性且R分位低于N": 2,
+    "Case 3 / dev0 / seed42 / 均未进前5%": 21
+  },
+  "distinct_cases": 3,
+  "dev0_seed42": {
+    "eligible": 3182,
+    "b_max_violations": 800,
+    "r_max_violations": 0,
+    "r_growth_violations": 0,
+    "extra_positive_sites": 421,
+    "missed_extra_sites": 339,
+    "recovered_extra_sites": 91,
+    "positive_t2": 26,
+    "both_outside_top5": 22
+  }
+}
