@@ -1,0 +1,10 @@
+{
+  "utc": "2026-11-22T07:34:04.907878+00:00",
+  "variant": {
+    "prefix": true,
+    "weighting": "double",
+    "sparse": true,
+    "diffusion": true
+  },
+  "parent": "1b00089a299a0e816e82d49a8d534f21bc635982"
+}

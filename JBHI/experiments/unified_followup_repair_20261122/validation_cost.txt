@@ -1,0 +1,1 @@
+elapsed_seconds=372.44 user_cpu_seconds=2006.33 system_cpu_seconds=134.44 max_rss_kb=505220 exit=0

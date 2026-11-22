@@ -1,3 +1,7 @@
+## 2026-11-22 最后一轮聚焦修复
+
+本分支从原统一模型的审查提交派生。修复选择仅使用 dev0 校准结果，正式证据覆盖三个开发折、三个种子。 [Causal-TabDiff最终聚焦修复实验报告](JBHI/experiments/unified_followup_repair_20261122/Causal-TabDiff最终聚焦修复实验报告.md) [最终模型与实验对照汇总](JBHI/experiments/unified_followup_repair_20261122/最终模型与实验对照汇总.md) [三项科学问题最终回答](JBHI/experiments/unified_followup_repair_20261122/三项科学问题最终回答.md) [算法阶段收束与中文论文写作交接](JBHI/experiments/unified_followup_repair_20261122/算法阶段收束与中文论文写作交接.md)。
+
 # Causal-TabDiff 统一随访监督实验 · 独立技术审查
 
 本分支保存 2026-11-22 统一模型在 10,594 名开发患者上的研究代码、配置和汇总证据。A/B/C/D 使用同一份当前历史表征进行风险预测，B/C/D 在训练时接收后续真实 CT 测量监督。完整模型 C 的 AUPRC 为 0.03228，最强原定基线 iTransformer 为 0.03718。分支独立于旧 main 的提交历史。已有仓库读权限仍可浏览旧 main，审查分支不会改变该权限。

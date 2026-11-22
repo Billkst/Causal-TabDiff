@@ -1,0 +1,122 @@
+{
+  "development_patients": 10594,
+  "development_landmarks": 31587,
+  "positive": 345,
+  "historical_metrics_verified": 117,
+  "frozen_weight_replays": [
+    {
+      "model": "R",
+      "fold": 0,
+      "seed": 42,
+      "max_abs_risk": 0.0
+    },
+    {
+      "model": "N",
+      "fold": 0,
+      "seed": 42,
+      "max_abs_risk": 0.0
+    },
+    {
+      "model": "R",
+      "fold": 0,
+      "seed": 52,
+      "max_abs_risk": 0.0
+    },
+    {
+      "model": "N",
+      "fold": 0,
+      "seed": 52,
+      "max_abs_risk": 0.0
+    },
+    {
+      "model": "R",
+      "fold": 0,
+      "seed": 62,
+      "max_abs_risk": 0.0
+    },
+    {
+      "model": "N",
+      "fold": 0,
+      "seed": 62,
+      "max_abs_risk": 0.0
+    },
+    {
+      "model": "R",
+      "fold": 1,
+      "seed": 42,
+      "max_abs_risk": 0.0
+    },
+    {
+      "model": "N",
+      "fold": 1,
+      "seed": 42,
+      "max_abs_risk": 0.0
+    },
+    {
+      "model": "R",
+      "fold": 1,
+      "seed": 52,
+      "max_abs_risk": 0.0
+    },
+    {
+      "model": "N",
+      "fold": 1,
+      "seed": 52,
+      "max_abs_risk": 0.0
+    },
+    {
+      "model": "R",
+      "fold": 1,
+      "seed": 62,
+      "max_abs_risk": 0.0
+    },
+    {
+      "model": "N",
+      "fold": 1,
+      "seed": 62,
+      "max_abs_risk": 0.0
+    },
+    {
+      "model": "R",
+      "fold": 2,
+      "seed": 42,
+      "max_abs_risk": 0.0
+    },
+    {
+      "model": "N",
+      "fold": 2,
+      "seed": 42,
+      "max_abs_risk": 0.0
+    },
+    {
+      "model": "R",
+      "fold": 2,
+      "seed": 52,
+      "max_abs_risk": 0.0
+    },
+    {
+      "model": "N",
+      "fold": 2,
+      "seed": 52,
+      "max_abs_risk": 0.0
+    },
+    {
+      "model": "R",
+      "fold": 2,
+      "seed": 62,
+      "max_abs_risk": 0.0
+    },
+    {
+      "model": "N",
+      "fold": 2,
+      "seed": 62,
+      "max_abs_risk": 0.0
+    }
+  ],
+  "all_new_predictions_exact": true,
+  "private_predictions": "local only",
+  "gpu_hours": 0,
+  "registered_ap_contrasts": 14,
+  "risk_models": 15,
+  "new_fits": 18
+}

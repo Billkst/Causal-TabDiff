@@ -1,0 +1,172 @@
+{
+  "variant": {
+    "prefix": true,
+    "weighting": "double",
+    "sparse": true,
+    "diffusion": true
+  },
+  "rule": {
+    "prefix": "Always retain after invariance and gradient tests. Corrects support of history objective and encoding.",
+    "weighting": "Compare the two finite alternatives to double weighting. Retain highest best-checkpoint calibration AP only if higher than double, finite optimization and epoch-10 calibration AP no lower than double. Otherwise retain double. Ties prefer original then sample_only.",
+    "sparse": "Retain if it improves exact zero specificity on teacher-dominant positive measured calibration CT, has nonzero sensitivity on actually positive non-dominant or growing sites, and calibration AP is within 0.003 absolute of C0 or better. Otherwise retain dense output and report the sparse control.",
+    "combination": "No combination search. One choice. Freeze JSON before any new evaluation predictions."
+  },
+  "calibration": {
+    "C0": {
+      "selected": 68,
+      "epochs": 98,
+      "cal_ap": 0.027348716610870735,
+      "cal_ap10": 0.014158304498554743,
+      "auxiliary": {
+        "eligible": 989,
+        "positive": 247,
+        "conditional_zero_n": 1379,
+        "conditional_positive_n": 103,
+        "zero_specificity": 0.0,
+        "nonzero_sensitivity": 1.0,
+        "whole_mae": 2.165637493133545,
+        "site_mae": 0.8193164467811584,
+        "growth_mae": 0.6488240957260132,
+        "positive_whole_mae": 4.967810153961182,
+        "presence_brier": 0.14424465596675873,
+        "presence_ap": 0.6247916373560887,
+        "predicted_positive": 236,
+        "max_violation": 0,
+        "dominant_violation": 0,
+        "growth_violation": 0,
+        "forced_max_violation": 0
+      }
+    },
+    "P0": {
+      "selected": 52,
+      "epochs": 82,
+      "cal_ap": 0.02828545722299796,
+      "cal_ap10": 0.01480617627088701,
+      "auxiliary": {
+        "eligible": 989,
+        "positive": 247,
+        "conditional_zero_n": 1379,
+        "conditional_positive_n": 103,
+        "zero_specificity": 0.0,
+        "nonzero_sensitivity": 1.0,
+        "whole_mae": 2.0401997566223145,
+        "site_mae": 0.7842687964439392,
+        "growth_mae": 0.5680640935897827,
+        "positive_whole_mae": 4.643874168395996,
+        "presence_brier": 0.15299026668071747,
+        "presence_ap": 0.6077871126806217,
+        "predicted_positive": 238,
+        "max_violation": 0,
+        "dominant_violation": 0,
+        "growth_violation": 0,
+        "forced_max_violation": 0
+      }
+    },
+    "sample_only": {
+      "selected": 34,
+      "epochs": 64,
+      "cal_ap": 0.02513624985580404,
+      "cal_ap10": 0.018255369276884013,
+      "auxiliary": {
+        "eligible": 989,
+        "positive": 247,
+        "conditional_zero_n": 1379,
+        "conditional_positive_n": 103,
+        "zero_specificity": 0.0,
+        "nonzero_sensitivity": 1.0,
+        "whole_mae": 1.6678528785705566,
+        "site_mae": 0.6468900442123413,
+        "growth_mae": 0.4177612066268921,
+        "positive_whole_mae": 4.430314064025879,
+        "presence_brier": 0.15637896955013275,
+        "presence_ap": 0.582189387333815,
+        "predicted_positive": 192,
+        "max_violation": 0,
+        "dominant_violation": 0,
+        "growth_violation": 0,
+        "forced_max_violation": 0
+      }
+    },
+    "loss_only": {
+      "selected": 39,
+      "epochs": 69,
+      "cal_ap": 0.026872339772508864,
+      "cal_ap10": 0.011739288298035916,
+      "auxiliary": {
+        "eligible": 989,
+        "positive": 247,
+        "conditional_zero_n": 1379,
+        "conditional_positive_n": 103,
+        "zero_specificity": 0.0,
+        "nonzero_sensitivity": 1.0,
+        "whole_mae": 1.650729775428772,
+        "site_mae": 0.48118147253990173,
+        "growth_mae": 0.14733941853046417,
+        "positive_whole_mae": 5.688161373138428,
+        "presence_brier": 0.12978510558605194,
+        "presence_ap": 0.6201715757551832,
+        "predicted_positive": 80,
+        "max_violation": 0,
+        "dominant_violation": 0,
+        "growth_violation": 0,
+        "forced_max_violation": 0
+      }
+    },
+    "P2": {
+      "selected": 52,
+      "epochs": 82,
+      "cal_ap": 0.027092287788646464,
+      "cal_ap10": 0.014161163163742286,
+      "auxiliary": {
+        "eligible": 989,
+        "positive": 247,
+        "conditional_zero_n": 1379,
+        "conditional_positive_n": 103,
+        "zero_specificity": 0.960841178894043,
+        "nonzero_sensitivity": 0.04854368790984154,
+        "whole_mae": 1.9507852792739868,
+        "site_mae": 0.7644676566123962,
+        "growth_mae": 0.5186058878898621,
+        "positive_whole_mae": 4.638911247253418,
+        "presence_brier": 0.14613869786262512,
+        "presence_ap": 0.6117574830194363,
+        "predicted_positive": 226,
+        "max_violation": 0,
+        "dominant_violation": 0,
+        "growth_violation": 0,
+        "forced_max_violation": 0
+      }
+    },
+    "D0": {
+      "selected": 20,
+      "epochs": 50,
+      "cal_ap": 0.028529466786541478,
+      "cal_ap10": 0.01716738211978647,
+      "auxiliary": {
+        "eligible": 989,
+        "positive": 247,
+        "conditional_zero_n": 1379,
+        "conditional_positive_n": 103,
+        "zero_specificity": 0.0,
+        "nonzero_sensitivity": 1.0,
+        "whole_mae": 1.7571274042129517,
+        "site_mae": 0.5845744609832764,
+        "growth_mae": 0.3580133616924286,
+        "positive_whole_mae": 5.329828262329102,
+        "presence_brier": 0.1681109070777893,
+        "presence_ap": 0.5669060568196937,
+        "predicted_positive": 130,
+        "max_violation": 0,
+        "dominant_violation": 0,
+        "growth_violation": 0,
+        "forced_max_violation": 0
+      }
+    }
+  },
+  "archive_calibration_replay_exact": [
+    "C",
+    "D"
+  ],
+  "screen_fold": 0,
+  "screen_seed": 42
+}
