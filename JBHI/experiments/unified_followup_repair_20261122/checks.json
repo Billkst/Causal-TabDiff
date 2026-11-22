@@ -1,0 +1,41 @@
+{
+  "legacy_padding_risk_logit_gap": 0.08481176197528839,
+  "legacy_risk_padded_grad": 0.09074171632528305,
+  "repaired_padding_logit_gap": 0.0,
+  "repaired_padded_history_input_grad": 0,
+  "repaired_padded_noise_grad": 0,
+  "full_length_encode_gap": 1.1920928955078125e-07,
+  "sparse_gate_trunk_grad": 0.028100743889808655,
+  "dense_positive_cells": 24,
+  "sparse_positive_cells": 6,
+  "pass_checks": true,
+  "fit": {
+    "fit_n": 17902,
+    "fit_positive": 197,
+    "eligible": 5569,
+    "positive_reports": 1593,
+    "single_site": 1110,
+    "zero_growth": 1492,
+    "padded_cell_fraction": 0.3346925973892212
+  },
+  "sampling": {
+    "double": {
+      "epoch_positive": 14942,
+      "epoch_n": 17902,
+      "first_batch_positive": 1713,
+      "focal_grad_ratio_at_equal_logits": 89.87309265136719
+    },
+    "sample_only": {
+      "epoch_positive": 14942,
+      "epoch_n": 17902,
+      "first_batch_positive": 1713,
+      "focal_grad_ratio_at_equal_logits": 1.0
+    },
+    "loss_only": {
+      "epoch_positive": 206,
+      "epoch_n": 17902,
+      "first_batch_positive": 19,
+      "focal_grad_ratio_at_equal_logits": 89.87309265136719
+    }
+  }
+}

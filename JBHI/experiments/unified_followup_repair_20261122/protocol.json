@@ -1,0 +1,79 @@
+{
+  "audit_commit": "1b00089a299a0e816e82d49a8d534f21bc635982",
+  "registry": "../unified_followup_20261122/private/registry.npz",
+  "development_people": 10594,
+  "sealed_people": 21188,
+  "screen": {
+    "fold": 0,
+    "seed": 42,
+    "arms": [
+      "C0",
+      "P0",
+      "sample_only",
+      "loss_only",
+      "P2",
+      "D0"
+    ],
+    "roles": [
+      "fit",
+      "calibration"
+    ],
+    "budget": "Archived 50 pretrain, 200 maximum finetune, patience 30 (strict calibration AP), matched 10th epoch secondary comparison. Same number of draws per epoch; uniform replacement for loss_only."
+  },
+  "selection": {
+    "prefix": "Always retain after invariance and gradient tests. Corrects support of history objective and encoding.",
+    "weighting": "Compare the two finite alternatives to double weighting. Retain highest best-checkpoint calibration AP only if higher than double, finite optimization and epoch-10 calibration AP no lower than double. Otherwise retain double. Ties prefer original then sample_only.",
+    "sparse": "Retain if it improves exact zero specificity on teacher-dominant positive measured calibration CT, has nonzero sensitivity on actually positive non-dominant or growing sites, and calibration AP is within 0.003 absolute of C0 or better. Otherwise retain dense output and report the sparse control.",
+    "combination": "No combination search. One choice. Freeze JSON before any new evaluation predictions."
+  },
+  "validation": {
+    "folds": [
+      0,
+      1,
+      2
+    ],
+    "seeds": [
+      42,
+      52,
+      62
+    ],
+    "arms": [
+      "R",
+      "N"
+    ],
+    "archived": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "LR",
+      "RF",
+      "HGB",
+      "XGBoost",
+      "iTransformer",
+      "TimeXer",
+      "SSSD",
+      "TSDiff",
+      "SurvTraj"
+    ],
+    "paired_draws": 2000,
+    "paired_seed": 20261122,
+    "ap_edges": [
+      "R-C",
+      "N-D",
+      "R-N",
+      "R-A",
+      "R-B",
+      "R-LR",
+      "R-RF",
+      "R-HGB",
+      "R-XGBoost",
+      "R-iTransformer",
+      "R-TimeXer",
+      "R-SSSD",
+      "R-TSDiff",
+      "R-SurvTraj"
+    ],
+    "decision": "Internal development only. Historical baseline goal delta >=0.003 and simultaneous lower bound >0 versus all nine. Independently assess diffusion via R-N. End after this validation."
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "python": "3.12.3 (main, Jun 19 2026, 12:46:00) [GCC 13.3.0]",
+  "executable": "/tmp/ctd-conditional-clean-20261121/bin/python",
+  "os": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "device": "CPU",
+  "used_gpu_hours": 0,
+  "frozen_png_identical_to_previous_word": true,
+  "packages": {
+    "torch": "2.10.0+cpu",
+    "numpy": "2.2.6",
+    "scipy": "1.18.1",
+    "pandas": "2.3.3",
+    "scikit-learn": "1.6.1",
+    "joblib": "1.6.0",
+    "threadpoolctl": "3.8.0",
+    "xgboost-cpu": "3.2.0",
+    "einops": "0.8.1",
+    "scikit-survival": "0.24.1",
+    "reformer-pytorch": "1.4.4",
+    "numba": "0.64.0"
+  }
+}
