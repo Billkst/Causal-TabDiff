@@ -25,3 +25,9 @@ data/landmark_tables/
 data/raw/
 
 .sisyphus/
+
+# Local clinical inputs and bulk experiment products.
+/data/
+/outputs/
+/logs/
+/.tmp_midreport/
