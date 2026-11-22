@@ -1,0 +1,113 @@
+{
+  "people": 10594,
+  "rows": 31587,
+  "positive": 345,
+  "positive_people": 228,
+  "sites": [
+    "right_upper",
+    "right_middle",
+    "right_lower",
+    "left_upper",
+    "left_lower",
+    "other"
+  ],
+  "columns": [
+    [
+      "baseline_age",
+      "baseline_gender",
+      "baseline_race",
+      "screen_t0_ctdxqual",
+      "screen_t0_kvp",
+      "screen_t0_ma",
+      "screen_t0_fov",
+      "abn_t0_count",
+      "abn_t0_max_long_dia",
+      "abn_t0_max_perp_dia",
+      "abn_t0_has_spiculated",
+      "change_t0_has_growth",
+      "change_t0_has_attn_change",
+      "change_t0_change_count"
+    ],
+    [
+      "baseline_age",
+      "baseline_gender",
+      "baseline_race",
+      "screen_t1_ctdxqual",
+      "screen_t1_kvp",
+      "screen_t1_ma",
+      "screen_t1_fov",
+      "abn_t1_count",
+      "abn_t1_max_long_dia",
+      "abn_t1_max_perp_dia",
+      "abn_t1_has_spiculated",
+      "change_t1_has_growth",
+      "change_t1_has_attn_change",
+      "change_t1_change_count"
+    ],
+    [
+      "baseline_age",
+      "baseline_gender",
+      "baseline_race",
+      "screen_t2_ctdxqual",
+      "screen_t2_kvp",
+      "screen_t2_ma",
+      "screen_t2_fov",
+      "abn_t2_count",
+      "abn_t2_max_long_dia",
+      "abn_t2_max_perp_dia",
+      "abn_t2_has_spiculated",
+      "change_t2_has_growth",
+      "change_t2_has_attn_change",
+      "change_t2_change_count"
+    ]
+  ],
+  "landmarks": [
+    {
+      "landmark": 0,
+      "rows": 10594,
+      "positive": 134,
+      "eligible_pair": 10533,
+      "next_ct": 4954,
+      "auxiliary": 4937,
+      "positive_auxiliary": 37,
+      "positive_size": 1389
+    },
+    {
+      "landmark": 1,
+      "rows": 10533,
+      "positive": 117,
+      "eligible_pair": 10460,
+      "next_ct": 4814,
+      "auxiliary": 4803,
+      "positive_auxiliary": 12,
+      "positive_size": 1317
+    },
+    {
+      "landmark": 2,
+      "rows": 10460,
+      "positive": 94,
+      "eligible_pair": 0,
+      "next_ct": 0,
+      "auxiliary": 0,
+      "positive_auxiliary": 0,
+      "positive_size": 0
+    }
+  ],
+  "roles": [
+    [
+      17902,
+      3163,
+      10522
+    ],
+    [
+      17896,
+      3159,
+      10532
+    ],
+    [
+      17900,
+      3154,
+      10533
+    ]
+  ]
+}

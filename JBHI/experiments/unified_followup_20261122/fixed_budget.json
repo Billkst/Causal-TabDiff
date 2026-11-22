@@ -1,0 +1,5 @@
+{
+  "decision_time": "Before inspecting any held evaluation score or auxiliary endpoint. The independent four-arm worker already stores epoch 10.",
+  "comparison": "C with 50 history pretraining passes + 10 fine-tuning passes versus D with 60 fine-tuning passes. Exactly the same total number of sampled training landmarks and Adam updates. D obtains more labeled updates. Also compare all arms at fine-tuning epoch 10, and all arms at their predeclared calibration-selected checkpoints. Report C and D compute times separately. This is a secondary exposure-budget comparison and does not select a model.",
+  "replay": "Resume the same D trajectory by deterministically reconstructing its first 60 epochs from the original seed; confirm D epoch 10 checkpoint predictions. No new model family or new seed."
+}

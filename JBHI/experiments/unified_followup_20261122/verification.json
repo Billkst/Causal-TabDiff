@@ -1,0 +1,34 @@
+{
+  "development_participants": 10594,
+  "protected_participants_used": 0,
+  "folds": 3,
+  "seeds": [
+    42,
+    52,
+    62
+  ],
+  "primary_fits": 36,
+  "baseline_fits": 81,
+  "fresh_common_pretrains": 9,
+  "additional_fixed_budget_fits": 9,
+  "replay_checked_models": 117,
+  "replay_checks_by_family": {
+    "HGB": 9,
+    "TSDiff": 9,
+    "A": 9,
+    "SSSD": 9,
+    "B": 9,
+    "SurvTraj": 9,
+    "C": 9,
+    "D": 9,
+    "RF": 9,
+    "TimeXer": 9,
+    "XGBoost": 9,
+    "LR": 9,
+    "iTransformer": 9
+  },
+  "max_abs_calibration": 0.0,
+  "max_abs_evaluation": 0.0,
+  "paired_bootstrap_replicates": 2000,
+  "all_primary_predictions_verified": true
+}

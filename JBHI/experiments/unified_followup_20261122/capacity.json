@@ -1,0 +1,26 @@
+{
+  "A": {
+    "allocated": 36745,
+    "fine_graph": 29959,
+    "auxiliary": 0,
+    "risk": 5133
+  },
+  "B": {
+    "allocated": 38708,
+    "fine_graph": 31922,
+    "auxiliary": 1963,
+    "risk": 5133
+  },
+  "C": {
+    "allocated": 38708,
+    "fine_graph": 31922,
+    "auxiliary": 1963,
+    "risk": 5133
+  },
+  "D": {
+    "allocated": 38708,
+    "fine_graph": 9919,
+    "auxiliary": 1963,
+    "risk": 5133
+  }
+}
